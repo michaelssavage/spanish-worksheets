@@ -8,7 +8,10 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "django (>=5.2.8,<6.0.0)"
+    "django (>=5.2.8,<6.0.0)",
+    "openai (>=2.8.0,<3.0.0)",
+    "python-decouple (>=3.8,<4.0)",
+    "djangorestframework (>=3.16.1,<4.0.0)"
 ]
 
 [tool.poetry]
