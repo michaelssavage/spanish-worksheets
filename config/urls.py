@@ -1,10 +1,13 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
 
-from worksheet.views import run_scheduler, generate_llm_content
+from rest_framework.authtoken.views import obtain_auth_token
+
+from .views import home
 
 urlpatterns = [
+    path("", home, name="home"),
     path("admin/", admin.site.urls),
-    path("internal/run-scheduler/", run_scheduler),
-    path("api/generate/", generate_llm_content),
+    path("api/token/", obtain_auth_token, name="api-token"),
+    path("api/worksheet/", include("worksheet.urls")),
 ]

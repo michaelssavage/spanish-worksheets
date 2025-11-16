@@ -1,3 +1,7 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
 SYSTEM_PROMPT = (
     "You generate Spanish-learning worksheets. "
     "Produce clear, accurate Spanish examples suitable for intermediate learners. "
@@ -62,10 +66,14 @@ def build_payload(forbidden_sentences, themes):
     """
     Returns the full model payload for OpenAI or DeepSeek (depending on client).
     """
-
+    logger.debug(
+        f"Building payload with {len(forbidden_sentences)} forbidden sentences and themes: {themes}"
+    )
     user_prompt = build_user_prompt(forbidden_sentences, themes)
 
-    return [
+    payload = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": user_prompt},
     ]
+    logger.info("Payload built successfully")
+    return payload

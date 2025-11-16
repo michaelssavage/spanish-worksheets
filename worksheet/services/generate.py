@@ -3,8 +3,11 @@ from worksheet.services.prompts import build_payload
 from django.conf import settings
 import hashlib
 from openai import OpenAI
+import logging
 
 from worksheet.services.topic_rotator import get_and_increment_topics
+
+logger = logging.getLogger(__name__)
 
 
 def call_llm(predictions_payload):
@@ -13,16 +16,21 @@ def call_llm(predictions_payload):
         api_key=settings.DEEPSEEK_API_KEY, base_url="https://api.deepseek.com"
     )
 
+    logger.info("Sending request to DeepSeek API")
     response = client.chat.completions.create(
         model="deepseek-chat",
         messages=predictions_payload,
         temperature=0.7,
     )
 
-    return response.choices[0].message.content
+    content = response.choices[0].message.content
+    logger.info(f"Received response from LLM (length: {len(content)} chars)")
+    return content
 
 
 def generate_worksheet_for(user):
+    logger.info(f"Starting worksheet generation for user: {user.email} (ID: {user.id})")
+
     recent = Worksheet.objects.filter(user=user).order_by("-created_at")[:10]
     forbidden = []
 
@@ -31,20 +39,30 @@ def generate_worksheet_for(user):
             forbidden.append(w.content_preview)
 
     themes = get_and_increment_topics()
+    logger.info(f"Selected themes: {themes}")
+
     payload = build_payload(forbidden, themes)
+
+    logger.info("Calling LLM to generate worksheet content")
     content = call_llm(payload)
 
     # Important: content is machine-readable JSON output from the model
     h = hashlib.sha256(content.encode("utf-8")).hexdigest()
+    logger.debug(f"Content hash: {h[:16]}...")
 
     if Worksheet.objects.filter(content_hash=h).exists():
+        logger.warning(
+            f"Duplicate worksheet detected (hash: {h[:16]}...), returning None"
+        )
         return None
 
+    logger.info("Saving new worksheet to database")
     Worksheet.objects.create(
         user=user,
         content_hash=h,
         content_preview=content[:200],
         topics=["past", "present_future", "vocab"],
     )
+    logger.info(f"Worksheet saved successfully for user: {user.email}")
 
     return content

@@ -24,9 +24,38 @@ Homework straight to your inbox.
 
 ## Endpoints
 
-With custom themes (POST):
+Get llm content with custom themes (POST):
 ```bash
   curl -X POST http://your-domain/api/generate/ \
     -H "Content-Type: application/json" \
     -d '{"themes": ["viajes", "hoteles"]}'
+```
+
+response:
+
+
+```json
+{
+    "content": "{\n  
+    \"past\": [
+      \"Ayer mi hermana ________ (cocinar) la cena para toda la familia\", 
+      ......
+    ],\n
+
+    \"present_future\": [
+      \"Mañana mi madre ________ (preparar) el almuerzo temprano\", 
+      ......
+    ],\n  
+
+    \"vocab\": [
+      \"Mi tío prefiere el pescado a la carne en sus comidas\", 
+      ....
+    ]\n}"
+}
+```
+
+get token
+```bash
+  curl -X POST http://localhost:8000/api/token/ \
+    -d "username=yourusername&password=yourpassword"
 ```
