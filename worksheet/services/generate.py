@@ -46,7 +46,6 @@ def generate_worksheet_for(user):
     logger.info("Calling LLM to generate worksheet content")
     content = call_llm(payload)
 
-    # Important: content is machine-readable JSON output from the model
     h = hashlib.sha256(content.encode("utf-8")).hexdigest()
     logger.debug(f"Content hash: {h[:16]}...")
 
@@ -60,7 +59,6 @@ def generate_worksheet_for(user):
     Worksheet.objects.create(
         user=user,
         content_hash=h,
-        content_preview=content[:200],
         topics=["past", "present_future", "vocab"],
     )
     logger.info(f"Worksheet saved successfully for user: {user.email}")

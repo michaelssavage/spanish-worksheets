@@ -7,7 +7,6 @@ class Worksheet(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    # Hash of all generated sentences
     content_hash = models.CharField(max_length=64, unique=True)
 
     topics = models.JSONField(null=True, blank=True)
