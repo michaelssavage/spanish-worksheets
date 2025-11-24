@@ -1,9 +1,11 @@
 # Spanish Worksheets
 
-Homework straight to your inbox.
+**Homework straight to your inbox.**
+
+A Django app deployed to Railway with a Github Action CRON job. The CRON runs every second day and generates Spanish homework via an LLM, and then sends an email of the homework via Mailgun SMTP.
 
 ## Setup
-### first time setup
+### first time setup locally
 
 1. `poetry init`
 2. `poetry install`
@@ -36,21 +38,20 @@ response:
 
 ```json
 {
-    "content": "{\n  
-    \"past\": [
-      \"Ayer mi hermana ________ (cocinar) la cena para toda la familia\", 
+  "content": {  
+    "past": [
+      "Ayer mi hermana ________ (cocinar) la cena para toda la familia", 
       ......
-    ],\n
-
-    \"present_future\": [
-      \"Mañana mi madre ________ (preparar) el almuerzo temprano\", 
+    ],
+    "present_future": [
+      "Mañana mi madre ________ (preparar) el almuerzo temprano", 
       ......
-    ],\n  
-
-    \"vocab\": [
-      \"Mi tío prefiere el pescado a la carne en sus comidas\", 
+    ],  
+    "vocab": [
+      "Mi tío prefiere el pescado a la carne en sus comidas", 
       ....
-    ]\n}"
+    ]
+  }
 }
 ```
 
