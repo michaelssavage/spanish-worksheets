@@ -1,4 +1,5 @@
 from django.core.mail import EmailMultiAlternatives
+from django.conf import settings
 from django.utils.html import escape
 import json
 import logging
@@ -95,7 +96,7 @@ def send_worksheet_email(user, content):
     email = EmailMultiAlternatives(
         subject=subject,
         body=plain_text,
-        from_email="michaelsavage940@gmail.com",
+        from_email=settings.DEFAULT_FROM_EMAIL,
         to=[user.email],
     )
     email.attach_alternative(html_message, "text/html")
