@@ -1,0 +1,26 @@
+name: Generate Worksheet
+
+on:
+  schedule:
+    - cron: "0 20 */2 * *"
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Request JWT token
+        id: get_token
+        run: |
+          TOKEN=$(curl -s -X POST "${{ secrets.API_BASE_URL }}/api/token/" \
+            -H "Content-Type: application/json" \
+            -d "{\"username\": \"${{ secrets.API_USERNAME }}\", \"password\": \"${{ secrets.API_PASSWORD }}\"}" \
+            | python3 -c "import sys, json; print(json.load(sys.stdin)['access'])")
+
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+
+      - name: Call worksheet endpoint
+        run: |
+          curl -s -X POST "${{ secrets.API_BASE_URL }}/api/worksheet/generate-worksheet/" \
+            -H "Authorization: Bearer ${{ steps.get_token.outputs.token }}"
