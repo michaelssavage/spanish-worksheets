@@ -87,4 +87,11 @@ def generate_worksheet(request):
     logger.info(
         f"Worksheet generated successfully for {request.user.email} (length: {len(content)} chars)"
     )
+
+    try:
+        send_worksheet_email(request.user, content)
+        logger.info(f"Email sent successfully to {request.user.email}")
+    except Exception as e:
+        logger.error(f"Failed to send email to {request.user.email}: {e}")
+
     return Response({"content": content}, status=status.HTTP_200_OK)
