@@ -30,19 +30,21 @@ def home(request):
     </head>
     <body>
         <div class="container">
-            <h1>🚀 Worksheet API</h1>
+            <h1>Spanish Worksheet API</h1>
             <p class="status">✓ Server is running</p>
             <h2>Available Endpoints:</h2>
             <ul>
                 <li><a href="/admin/">/admin/</a> - Django Admin</li>
+                <li><strong>/api/docs/</strong> - Swagger UI</li>
                 <li><strong>/api/token/</strong> - Get authentication token (POST)</li>
-                <li><strong>/api/worksheet/generate/</strong> - Generate worksheet (POST)</li>
+                <li><strong>/api/worksheet/generate-content/</strong> - Generate content only (POST)</li>
+                <li><strong>/api/worksheet/generate-worksheet/</strong> - Generate worksheet (POST)</li>
             </ul>
             <h2>Quick Start:</h2>
             <ol>
                 <li>Get a token: <code>POST /api/token/</code></li>
                 <li>Use token in header: <code>Authorization: Token YOUR_TOKEN</code></li>
-                <li>Generate worksheet: <code>POST /api/worksheet/generate/</code></li>
+                <li>Generate worksheet: <code>POST /api/worksheet/generate-content/</code></li>
             </ol>
         </div>
     </body>

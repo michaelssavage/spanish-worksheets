@@ -12,6 +12,7 @@ A Django app deployed to Railway with a Github Action CRON job. The CRON runs ev
 3. `poetry run django-admin startproject config .`
 4. `poetry run python manage.py runserver`
 5. `poetry run python manage.py migrate`
+6. `poetry run python manage.py createsuperuser`
 
 ### create a new model / section
 

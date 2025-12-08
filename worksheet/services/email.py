@@ -101,5 +101,14 @@ def send_worksheet_email(user, content):
     )
     email.attach_alternative(html_message, "text/html")
 
-    email.send()
-    logger.info(f"Email sent successfully to {user.email}")
+    try:
+        email.send()
+        logger.info(f"Email sent successfully to {user.email}")
+    except Exception as e:
+        logger.error(f"Failed to send email to {user.email}: {type(e).__name__}: {e}")
+        logger.error(
+            f"Email config - Host: {settings.EMAIL_HOST}, "
+            f"Port: {settings.EMAIL_PORT}, TLS: {settings.EMAIL_USE_TLS}"
+        )
+        logger.error(f"Email user: {settings.EMAIL_HOST_USER[:10]}... (truncated)")
+        raise

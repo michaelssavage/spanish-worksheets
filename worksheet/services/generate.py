@@ -4,14 +4,52 @@ from django.conf import settings
 import hashlib
 from openai import OpenAI
 import logging
+import json
+import re
 
 from worksheet.services.topic_rotator import get_and_increment_topics
 
 logger = logging.getLogger(__name__)
 
 
+def extract_json_from_response(content):
+    """
+    Extract JSON from LLM response that might be wrapped in markdown code blocks.
+    """
+    # First, try to parse as-is
+    try:
+        json.loads(content)
+        return content
+    except json.JSONDecodeError:
+        pass
+
+    # Try to extract JSON from markdown code blocks
+    # Match ```json ... ``` or ``` ... ```
+    json_pattern = r"```(?:json)?\s*(\{.*?\})\s*```"
+    match = re.search(json_pattern, content, re.DOTALL)
+
+    if match:
+        extracted = match.group(1)
+        logger.info("Extracted JSON from markdown code block")
+        return extracted
+
+    json_obj_pattern = r"\{.*?\}"
+    match = re.search(json_obj_pattern, content, re.DOTALL)
+
+    if match:
+        extracted = match.group(0)
+        try:
+            json.loads(extracted)
+            logger.info("Extracted JSON object from response")
+            return extracted
+        except json.JSONDecodeError:
+            pass
+
+    logger.warning("Could not extract valid JSON from LLM response")
+    return content
+
+
 def call_llm(predictions_payload):
-    # DeepSeek is OpenAI-compatible:
     client = OpenAI(
         api_key=settings.DEEPSEEK_API_KEY, base_url="https://api.deepseek.com"
     )
@@ -25,18 +63,16 @@ def call_llm(predictions_payload):
 
     content = response.choices[0].message.content
     logger.info(f"Received response from LLM (length: {len(content)} chars)")
+
+    content = extract_json_from_response(content)
+
     return content
 
 
 def generate_worksheet_for(user):
     logger.info(f"Starting worksheet generation for user: {user.email} (ID: {user.id})")
 
-    recent = Worksheet.objects.filter(user=user).order_by("-created_at")[:10]
     forbidden = []
-
-    for w in recent:
-        if w.content_preview:
-            forbidden.append(w.content_preview)
 
     themes = get_and_increment_topics()
     logger.info(f"Selected themes: {themes}")
