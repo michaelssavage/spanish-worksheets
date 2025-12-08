@@ -25,6 +25,10 @@ A Django app deployed to Railway with a Github Action CRON job. The CRON runs ev
 
 `poetry add DEPENDENCY`
 
+## Verifying SMTP
+
+I used Mailgun for sending emails. You need to edit the DNS records for wherever your site is hosted. For me, that was Netlify.
+
 ## Endpoints
 
 Get llm content with custom themes (POST):
