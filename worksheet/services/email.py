@@ -1,4 +1,4 @@
-from django.core.mail import EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives, get_connection
 from django.conf import settings
 from django.utils.html import escape
 import json
@@ -74,6 +74,8 @@ def send_worksheet_email(user, content):
     subject = "Your Spanish Worksheet"
 
     html_message = format_worksheet_html(content)
+    # Use a bounded timeout so SMTP issues don't hang the request thread.
+    connection = get_connection(timeout=getattr(settings, "EMAIL_TIMEOUT", 5))
 
     try:
         if isinstance(content, str):
@@ -98,6 +100,7 @@ def send_worksheet_email(user, content):
         body=plain_text,
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=[user.email],
+        connection=connection,
     )
     email.attach_alternative(html_message, "text/html")
 
