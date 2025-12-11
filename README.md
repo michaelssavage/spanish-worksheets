@@ -2,7 +2,7 @@
 
 **Homework straight to your inbox.**
 
-A Django app deployed to Railway with a Github Action CRON job. The CRON runs every second day and generates Spanish homework via an LLM, and then sends an email of the homework via Mailgun SMTP.
+A Django app deployed to Railway with a Github Action CRON job. The CRON runs every second day and generates Spanish homework via an LLM, and then sends an email of the homework via Mailgun's API.
 
 ## Setup
 ### first time setup locally
@@ -14,9 +14,9 @@ A Django app deployed to Railway with a Github Action CRON job. The CRON runs ev
 5. `poetry run python manage.py migrate`
 6. `poetry run python manage.py createsuperuser`
 
-### create a new model / section
+### creating a new subsection
 
-1. `poetry run python manage.py startapp NEW_ITEM`
+1. `poetry run python manage.py startapp NEW_APP`
 2. Register the app in config/settings.py
 3. `poetry run python manage.py makemigrations`
 4. `poetry run python manage.py migrate`
@@ -25,16 +25,16 @@ A Django app deployed to Railway with a Github Action CRON job. The CRON runs ev
 
 `poetry add DEPENDENCY`
 
-## Verifying SMTP
+## Verifying Email Provider
 
-I used Mailgun for sending emails. You need to edit the DNS records for wherever your site is hosted. For me, that was Netlify.
+I used Mailgun for sending emails. I had to edit the DNS records for wherever your site is hosted. That was Netlify in my case.
 
 ## Endpoints
 
 Get llm content with custom themes (POST):
 ```bash
-  curl -X POST http://your-domain/api/generate/ \
-    -H "Content-Type: application/json" \
+  curl -X POST http://your-domain/api/worksheet/generate-worksheet \
+    -H "Content-Type: application/json" -H "Authorization: Token TOKEN_VALUE" \
     -d '{"themes": ["viajes", "hoteles"]}'
 ```
 
