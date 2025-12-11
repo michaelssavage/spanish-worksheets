@@ -91,10 +91,12 @@ def generate_worksheet_for(user):
         )
         return None
 
-    logger.info("Saving new worksheet to database")
+    logger.info("Saving new worksheet to database (replacing prior user worksheet)")
+    Worksheet.objects.filter(user=user).delete()
     Worksheet.objects.create(
         user=user,
         content_hash=h,
+        content=content,
         topics=["past", "present_future", "vocab"],
     )
     logger.info(f"Worksheet saved successfully for user: {user.email}")

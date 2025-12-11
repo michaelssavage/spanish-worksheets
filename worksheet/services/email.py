@@ -1,8 +1,8 @@
-from django.core.mail import EmailMultiAlternatives, get_connection
-from django.conf import settings
-from django.utils.html import escape
 import json
 import logging
+import requests
+from django.conf import settings
+from django.utils.html import escape
 
 logger = logging.getLogger(__name__)
 
@@ -74,8 +74,6 @@ def send_worksheet_email(user, content):
     subject = "Your Spanish Worksheet"
 
     html_message = format_worksheet_html(content)
-    # Use a bounded timeout so SMTP issues don't hang the request thread.
-    connection = get_connection(timeout=getattr(settings, "EMAIL_TIMEOUT", 5))
 
     try:
         if isinstance(content, str):
@@ -95,23 +93,38 @@ def send_worksheet_email(user, content):
     except (json.JSONDecodeError, KeyError, AttributeError):
         plain_text = str(content)
 
-    email = EmailMultiAlternatives(
-        subject=subject,
-        body=plain_text,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=[user.email],
-        connection=connection,
+    if not settings.MAILGUN_API_KEY or not settings.MAILGUN_DOMAIN:
+        raise ValueError(
+            "Mailgun settings MAILGUN_API_KEY and MAILGUN_DOMAIN are required."
+        )
+
+    url = (
+        f"{settings.MAILGUN_BASE_URL.rstrip('/')}/v3/{settings.MAILGUN_DOMAIN}/messages"
     )
-    email.attach_alternative(html_message, "text/html")
+    data = {
+        "from": settings.DEFAULT_FROM_EMAIL,
+        "to": user.email,
+        "subject": subject,
+        "text": plain_text,
+        "html": html_message,
+    }
 
     try:
-        email.send()
-        logger.info(f"Email sent successfully to {user.email}")
+        response = requests.post(
+            url,
+            auth=("api", settings.MAILGUN_API_KEY),
+            data=data,
+            timeout=10,
+        )
+
+        if response.ok:
+            logger.info(f"Email sent successfully to {user.email} via Mailgun")
+            return
+
+        logger.error(
+            f"Mailgun send failed (status {response.status_code}): {response.text}"
+        )
+        response.raise_for_status()
     except Exception as e:
         logger.error(f"Failed to send email to {user.email}: {type(e).__name__}: {e}")
-        logger.error(
-            f"Email config - Host: {settings.EMAIL_HOST}, "
-            f"Port: {settings.EMAIL_PORT}, TLS: {settings.EMAIL_USE_TLS}"
-        )
-        logger.error(f"Email user: {settings.EMAIL_HOST_USER[:10]}... (truncated)")
         raise

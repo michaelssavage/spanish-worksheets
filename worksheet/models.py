@@ -8,6 +8,7 @@ class Worksheet(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     content_hash = models.CharField(max_length=64, unique=True)
+    content = models.TextField(null=True, blank=True)
 
     topics = models.JSONField(null=True, blank=True)
 

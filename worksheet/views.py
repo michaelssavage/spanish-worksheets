@@ -13,6 +13,7 @@ from worksheet.services.generate import generate_worksheet_for, call_llm
 from worksheet.services.email import send_worksheet_email
 from worksheet.services.prompts import build_payload
 from worksheet.services.topic_rotator import get_and_increment_topics
+from worksheet.models import Worksheet
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
@@ -93,3 +94,36 @@ class GenerateWorksheetView(GenericAPIView):
             logger.error(f"Failed to send email: {e}")
 
         return Response({"content": content})
+
+
+class GenerateWorksheetEmailView(GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = GenerateWorksheetResponseSerializer
+
+    def post(self, request):
+        logger.info(f"send_worksheet_email called by user: {request.user.email}")
+
+        worksheet = (
+            Worksheet.objects.filter(user=request.user)
+            .order_by("-created_at")
+            .only("content")
+            .first()
+        )
+
+        if not worksheet or not worksheet.content:
+            logger.warning(
+                f"No worksheet found for user {request.user.email}; cannot send email"
+            )
+            return Response(
+                {"error": "No worksheet available"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        try:
+            send_worksheet_email(request.user, worksheet.content)
+        except Exception as e:
+            logger.error(f"Failed to resend worksheet email: {e}")
+            return Response(
+                {"error": "Failed to send email"}, status=status.HTTP_502_BAD_GATEWAY
+            )
+
+        return Response({"content": worksheet.content})

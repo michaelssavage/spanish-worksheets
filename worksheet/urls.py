@@ -1,5 +1,10 @@
 from django.urls import path
-from .views import GenerateLLMContentView, GenerateWorksheetView, RunSchedulerView
+from .views import (
+    GenerateLLMContentView,
+    GenerateWorksheetEmailView,
+    GenerateWorksheetView,
+    RunSchedulerView,
+)
 
 urlpatterns = [
     path(
@@ -9,6 +14,11 @@ urlpatterns = [
         "generate-worksheet/",
         GenerateWorksheetView.as_view(),
         name="generate-worksheet",
+    ),
+    path(
+        "send-worksheet-email/",
+        GenerateWorksheetEmailView.as_view(),
+        name="generate-worksheet-email",
     ),
     path("run-scheduler/", RunSchedulerView.as_view(), name="run-scheduler"),
 ]
