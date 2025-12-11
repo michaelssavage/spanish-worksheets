@@ -10,17 +10,44 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Request JWT token
+      - name: Request Token with retries (handles Railway wake-up)
         id: get_token
         run: |
-          TOKEN=$(curl -s -X POST "${{ secrets.API_BASE_URL }}/api/token/" \
-            -H "Content-Type: application/json" \
-            -d "{\"username\": \"${{ secrets.API_USERNAME }}\", \"password\": \"${{ secrets.API_PASSWORD }}\"}" \
-            | python3 -c "import sys, json; print(json.load(sys.stdin)['access'])")
+          MAX_RETRIES=5
+          RETRY_DELAY=5
 
-          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Attempt $i to obtain token..."
 
-      - name: Call worksheet endpoint
+            RESPONSE=$(curl -s -X POST "${{ secrets.API_BASE_URL }}/api/token/" \
+              -H "Content-Type: application/json" \
+              -d "{\"username\": \"${{ secrets.API_USERNAME }}\", \"password\": \"${{ secrets.API_PASSWORD }}\"}")
+
+            TOKEN=$(echo "$RESPONSE" | python3 -c "
+          import sys, json
+          try:
+              data = json.loads(sys.stdin.read())
+              print(data.get('access', ''))
+          except:
+              print('')
+          ")
+
+            if [ -n "$TOKEN" ]; then
+              echo "Token acquired."
+              echo "token=$TOKEN" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+
+            echo "No token received. Server may be waking up."
+            echo "Response was: $RESPONSE"
+            echo "Retrying in $RETRY_DELAY seconds..."
+            sleep $RETRY_DELAY
+          done
+
+          echo "Failed to obtain token after $MAX_RETRIES attempts."
+          exit 1
+
+      - name: Call generate worksheet endpoint
         run: |
           curl -s -X POST "${{ secrets.API_BASE_URL }}/api/worksheet/generate-worksheet/" \
-            -H "Authorization: Bearer ${{ steps.get_token.outputs.token }}"
+            -H "Authorization: Token ${{ steps.get_token.outputs.token }}"
