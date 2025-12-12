@@ -13,7 +13,7 @@ jobs:
       - name: Request Token with retries (handles Railway wake-up)
         id: get_token
         run: |
-          MAX_RETRIES=5
+          MAX_RETRIES=3
           RETRY_DELAY=10
 
           for i in $(seq 1 $MAX_RETRIES); do
@@ -27,7 +27,7 @@ jobs:
           import sys, json
           try:
               data = json.loads(sys.stdin.read())
-              print(data.get('access', ''))
+              print(data.get('token', ''))
           except:
               print('')
           ")
@@ -39,7 +39,6 @@ jobs:
             fi
 
             echo "No token received. Server may be waking up."
-            echo "Response was: $RESPONSE"
             echo "Retrying in $RETRY_DELAY seconds..."
             sleep $RETRY_DELAY
           done
