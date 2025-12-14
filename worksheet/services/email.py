@@ -69,10 +69,13 @@ def format_worksheet_html(content_json):
 
 
 def send_worksheet_email(user, content):
-    """Send worksheet email to user with formatted HTML content."""
+    """Send worksheet email to user and their additional recipients."""
     logger.info(f"Sending worksheet email to {user.email}")
-    subject = "Your Spanish Worksheet"
 
+    # Fetch all recipients for this user
+    all_recipients = list(user.email_recipients.values_list("email", flat=True))
+
+    subject = "Your Spanish Worksheet"
     html_message = format_worksheet_html(content)
 
     try:
@@ -81,13 +84,13 @@ def send_worksheet_email(user, content):
         else:
             data = content
         plain_text = "Your Spanish Worksheet\n\n"
-        plain_text += "1. Past Tense:\n"
+        plain_text += "1. El pasado:\n"
         for i, sentence in enumerate(data.get("past", []), 1):
             plain_text += f"   {i}. {sentence}\n"
-        plain_text += "\n2. Present or Future Tense:\n"
+        plain_text += "\n2. El presente o futuro:\n"
         for i, sentence in enumerate(data.get("present_future", []), 1):
             plain_text += f"   {i}. {sentence}\n"
-        plain_text += "\n3. Vocabulary Expansion:\n"
+        plain_text += "\n3. Ampliación de vocabulario:\n"
         for i, sentence in enumerate(data.get("vocab", []), 1):
             plain_text += f"   {i}. {sentence}\n"
     except (json.JSONDecodeError, KeyError, AttributeError):
@@ -103,7 +106,7 @@ def send_worksheet_email(user, content):
     )
     data = {
         "from": settings.DEFAULT_FROM_EMAIL,
-        "to": user.email,
+        "to": all_recipients,
         "subject": subject,
         "text": plain_text,
         "html": html_message,
@@ -118,7 +121,9 @@ def send_worksheet_email(user, content):
         )
 
         if response.ok:
-            logger.info(f"Email sent successfully to {user.email} via Mailgun")
+            logger.info(
+                f"Email sent successfully to {len(all_recipients)} recipients via Mailgun"
+            )
             return
 
         logger.error(
@@ -126,5 +131,5 @@ def send_worksheet_email(user, content):
         )
         response.raise_for_status()
     except Exception as e:
-        logger.error(f"Failed to send email to {user.email}: {type(e).__name__}: {e}")
+        logger.error(f"Failed to send email: {type(e).__name__}: {e}")
         raise

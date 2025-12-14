@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     # app
     "users",
     "worksheet",
+    "recipients",
 ]
 
 REST_FRAMEWORK = {
