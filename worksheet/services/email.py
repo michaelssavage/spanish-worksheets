@@ -7,6 +7,45 @@ from django.utils.html import escape
 logger = logging.getLogger(__name__)
 
 
+def normalize_to_list(value):
+    """Convert string values to list by splitting on sentence patterns.
+
+    Handles cases where LLM returns a string instead of an array.
+    Supports multiple patterns:
+    - Pattern 1: '", "' for quoted list strings
+    - Pattern 2: '., ' for period-comma-space sentence boundaries
+    """
+    if isinstance(value, list):
+        return value
+    elif isinstance(value, str):
+        sentences = []
+
+        # Pattern 1: Split by '", "' (for quoted list strings)
+        parts = value.split('", "')
+        if len(parts) > 1:
+            sentences = [s.strip().strip('"').strip("'") for s in parts]
+        else:
+            # Pattern 2: Split by '., ' (period, comma, space - sentence boundaries)
+            parts = value.split("., ")
+            if len(parts) > 1:
+                # Re-add the period to each sentence (except the last one if it already has it)
+                sentences = []
+                for i, s in enumerate(parts):
+                    s = s.strip()
+                    # Add period back if not the last item or if last item doesn't end with period
+                    if i < len(parts) - 1:
+                        sentences.append(s + ".")
+                    else:
+                        # Last item - keep as is (may or may not have period)
+                        sentences.append(s)
+            else:
+                # Fallback: return as single item
+                sentences = [value]
+        return sentences
+    else:
+        return []
+
+
 def format_worksheet_html(content_json):
     """Parse JSON content and format it as HTML with 4 numbered lists."""
     try:
@@ -16,11 +55,11 @@ def format_worksheet_html(content_json):
         else:
             data = content_json
 
-        # Extract the four sections
-        past = data.get("past", [])
-        present = data.get("present", [])
-        future = data.get("future", [])
-        vocab = data.get("vocab", [])
+        # Extract the four sections and normalize to lists
+        past = normalize_to_list(data.get("past", []))
+        present = normalize_to_list(data.get("present", []))
+        future = normalize_to_list(data.get("future", []))
+        vocab = normalize_to_list(data.get("vocab", []))
 
         # Build HTML with numbered lists
         html_content = """
@@ -94,18 +133,19 @@ def send_worksheet_email(user, content):
             data = json.loads(content)
         else:
             data = content
+
         plain_text = "Your Spanish Worksheet\n\n"
         plain_text += "1. El pasado:\n"
-        for i, sentence in enumerate(data.get("past", []), 1):
+        for i, sentence in enumerate(normalize_to_list(data.get("past", [])), 1):
             plain_text += f"   {i}. {sentence}\n"
         plain_text += "\n2. El presente:\n"
-        for i, sentence in enumerate(data.get("present", []), 1):
+        for i, sentence in enumerate(normalize_to_list(data.get("present", [])), 1):
             plain_text += f"   {i}. {sentence}\n"
         plain_text += "\n3. El futuro:\n"
-        for i, sentence in enumerate(data.get("future", []), 1):
+        for i, sentence in enumerate(normalize_to_list(data.get("future", [])), 1):
             plain_text += f"   {i}. {sentence}\n"
         plain_text += "\n4. Ampliación de vocabulario:\n"
-        for i, sentence in enumerate(data.get("vocab", []), 1):
+        for i, sentence in enumerate(normalize_to_list(data.get("vocab", [])), 1):
             plain_text += f"   {i}. {sentence}\n"
     except (json.JSONDecodeError, KeyError, AttributeError):
         plain_text = str(content)
