@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def format_worksheet_html(content_json):
-    """Parse JSON content and format it as HTML with 3 numbered lists."""
+    """Parse JSON content and format it as HTML with 4 numbered lists."""
     try:
         # Parse the JSON content
         if isinstance(content_json, str):
@@ -16,9 +16,10 @@ def format_worksheet_html(content_json):
         else:
             data = content_json
 
-        # Extract the three sections
+        # Extract the four sections
         past = data.get("past", [])
-        present_future = data.get("present_future", [])
+        present = data.get("present", [])
+        future = data.get("future", [])
         vocab = data.get("vocab", [])
 
         # Build HTML with numbered lists
@@ -38,17 +39,27 @@ def format_worksheet_html(content_json):
 
         html_content += """            </ol>
 
-            <h3 style="color: #34495e; margin-top: 30px;">2. Present or Future Tense</h3>
+            <h3 style="color: #34495e; margin-top: 30px;">2. Present Tense</h3>
             <ol style="margin-left: 20px;">
         """
 
-        for sentence in present_future:
+        for sentence in present:
             escaped_sentence = escape(str(sentence))
             html_content += f'                <li style="margin-bottom: 10px;">{escaped_sentence}</li>\n'
 
         html_content += """            </ol>
 
-            <h3 style="color: #34495e; margin-top: 30px;">3. Vocabulary Expansion</h3>
+            <h3 style="color: #34495e; margin-top: 30px;">3. Future Tense</h3>
+            <ol style="margin-left: 20px;">
+        """
+
+        for sentence in future:
+            escaped_sentence = escape(str(sentence))
+            html_content += f'                <li style="margin-bottom: 10px;">{escaped_sentence}</li>\n'
+
+        html_content += """            </ol>
+
+            <h3 style="color: #34495e; margin-top: 30px;">4. Vocabulary Expansion</h3>
             <ol style="margin-left: 20px;">
         """
 
@@ -87,10 +98,13 @@ def send_worksheet_email(user, content):
         plain_text += "1. El pasado:\n"
         for i, sentence in enumerate(data.get("past", []), 1):
             plain_text += f"   {i}. {sentence}\n"
-        plain_text += "\n2. El presente o futuro:\n"
-        for i, sentence in enumerate(data.get("present_future", []), 1):
+        plain_text += "\n2. El presente:\n"
+        for i, sentence in enumerate(data.get("present", []), 1):
             plain_text += f"   {i}. {sentence}\n"
-        plain_text += "\n3. Ampliación de vocabulario:\n"
+        plain_text += "\n3. El futuro:\n"
+        for i, sentence in enumerate(data.get("future", []), 1):
+            plain_text += f"   {i}. {sentence}\n"
+        plain_text += "\n4. Ampliación de vocabulario:\n"
         for i, sentence in enumerate(data.get("vocab", []), 1):
             plain_text += f"   {i}. {sentence}\n"
     except (json.JSONDecodeError, KeyError, AttributeError):

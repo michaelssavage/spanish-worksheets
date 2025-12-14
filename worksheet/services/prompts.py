@@ -39,8 +39,9 @@ Forbidden sentences:
 
 Sections required:
 1. Past tense: 10 sentences with a missing verb (user fills the correct past form).
-2. Present or future tense: 10 sentences with a missing verb.
-3. Vocabulary expansion: 10 natural sentences with mixed vocabulary.
+2. Present tense: 10 sentences with a missing verb (user fills the correct present form).
+3. Future tense: 10 sentences with a missing verb (user fills the correct future form).
+4. Vocabulary expansion: 10 natural sentences with mixed vocabulary.
 
 Output format:
 JSON only.
@@ -48,7 +49,8 @@ Use this structure:
 
 {{
   "past": ["sentence1", "..."],
-  "present_future": ["sentence1", "..."],
+  "present": ["sentence1", "..."],
+  "future": ["sentence1", "..."],
   "vocab": ["sentence1", "..."]
 }}
 

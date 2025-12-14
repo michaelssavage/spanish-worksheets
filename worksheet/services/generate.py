@@ -97,7 +97,7 @@ def generate_worksheet_for(user):
         user=user,
         content_hash=h,
         content=content,
-        topics=["past", "present_future", "vocab"],
+        topics=["past", "present", "future", "vocab"],
     )
     logger.info(f"Worksheet saved successfully for user: {user.email}")
 
