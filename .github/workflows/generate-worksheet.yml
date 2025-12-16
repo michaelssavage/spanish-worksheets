@@ -29,19 +29,21 @@ jobs:
               -H "Content-Type: application/json" \
               -d "{\"username\": \"${{ secrets.API_USERNAME }}\", \"password\": \"${{ secrets.API_PASSWORD }}\"}")
 
-            TOKEN=$(echo "$RESPONSE" | python3 -c "
-import sys, json
-try:
-    data = json.loads(sys.stdin.read())
-    print(data.get('token', '').strip())
-except Exception:
-    pass
-")
+            TOKEN=$(echo "$RESPONSE" | python3 -c '
+              import sys, json
+              try:
+                  data = json.loads(sys.stdin.read())
+                  token = data.get("token", "").strip()
+                  if token:
+                      print(token, end="")
+              except Exception:
+                  pass
+            ' | tr -d '\n\r')
 
             if [ -n "$TOKEN" ]; then
               echo "Token acquired."
               echo "::add-mask::$TOKEN"
-              printf "token=%s\n" "$TOKEN" >> "$GITHUB_OUTPUT"
+              echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
               exit 0
             fi
 
@@ -54,6 +56,12 @@ except Exception:
 
       - name: Call generate worksheet endpoint
         run: |
+          TOKEN="${{ steps.get_token.outputs.token }}"
+          if [ -z "$TOKEN" ]; then
+            echo "ERROR: Token is empty!"
+            exit 1
+          fi
+          echo "Calling generate worksheet endpoint..."
           curl --fail --show-error -X POST \
             "${{ secrets.API_BASE_URL }}/api/worksheet/generate-worksheet/" \
-            -H "Authorization: Token ${{ steps.get_token.outputs.token }}"
+            -H "Authorization: Token $TOKEN"
