@@ -29,16 +29,7 @@ jobs:
               -H "Content-Type: application/json" \
               -d "{\"username\": \"${{ secrets.API_USERNAME }}\", \"password\": \"${{ secrets.API_PASSWORD }}\"}")
 
-            TOKEN=$(echo "$RESPONSE" | python3 -c '
-              import sys, json
-              try:
-                  data = json.loads(sys.stdin.read())
-                  token = data.get("token", "").strip()
-                  if token:
-                      print(token, end="")
-              except Exception:
-                  pass
-            ' | tr -d '\n\r')
+            TOKEN=$(echo "$RESPONSE" | jq -r '.token // empty' | tr -d '\n\r')
 
             if [ -n "$TOKEN" ]; then
               echo "Token acquired."
