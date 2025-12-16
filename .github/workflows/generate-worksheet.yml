@@ -10,11 +10,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Request Token with retries (handles Railway wake-up)
+      - name: Wake Railway service
+        run: |
+          echo "Waking service via root endpoint..."
+          curl --silent --show-error "${{ secrets.API_BASE_URL }}/" || true
+          sleep 8
+
+      - name: Request Token with retries (handles Railway cold start)
         id: get_token
         run: |
-          MAX_RETRIES=3
-          RETRY_DELAY=12
+          MAX_RETRIES=4
+          RETRY_DELAY=15
 
           for i in $(seq 1 $MAX_RETRIES); do
             echo "Attempt $i to obtain token..."
@@ -32,22 +38,23 @@ jobs:
               print('')
           ")
 
-            if [ -n "$TOKEN" ]; then
-              echo "Token acquired."
-              echo "::add-mask::$TOKEN"
-              echo "token=$TOKEN" >> $GITHUB_OUTPUT
+            if [ -n \"$TOKEN\" ]; then
+              echo \"Token acquired.\"
+              echo \"::add-mask::$TOKEN\"
+              echo \"token=$TOKEN\" >> $GITHUB_OUTPUT
               exit 0
             fi
 
-            echo "No token received. Server may be waking up."
-            echo "Retrying in $RETRY_DELAY seconds..."
+            echo \"No token received yet.\"
+            echo \"Retrying in $RETRY_DELAY seconds...\"
             sleep $RETRY_DELAY
           done
 
-          echo "Failed to obtain token after $MAX_RETRIES attempts."
+          echo \"Failed to obtain token after $MAX_RETRIES attempts.\"
           exit 1
 
       - name: Call generate worksheet endpoint
         run: |
-          curl --silent --show-error -X POST "${{ secrets.API_BASE_URL }}/api/worksheet/generate-worksheet/" \
+          curl --fail --show-error -X POST \
+            "${{ secrets.API_BASE_URL }}/api/worksheet/generate-worksheet/" \
             -H "Authorization: Token ${{ steps.get_token.outputs.token }}"
