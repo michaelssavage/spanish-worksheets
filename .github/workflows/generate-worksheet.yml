@@ -13,10 +13,10 @@ jobs:
       - name: Wake Railway service
         run: |
           echo "Waking service via root endpoint..."
-          curl --silent --show-error "${{ secrets.API_BASE_URL }}/" || true
+          curl --silent "${{ secrets.API_BASE_URL }}/" || true
           sleep 8
 
-      - name: Request Token with retries (handles Railway cold start)
+      - name: Request token with retries
         id: get_token
         run: |
           MAX_RETRIES=4
@@ -25,32 +25,31 @@ jobs:
           for i in $(seq 1 $MAX_RETRIES); do
             echo "Attempt $i to obtain token..."
 
-            RESPONSE=$(curl -s -X POST "${{ secrets.API_BASE_URL }}/api/token/" \
+            RESPONSE=$(curl --silent -X POST "${{ secrets.API_BASE_URL }}/api/token/" \
               -H "Content-Type: application/json" \
               -d "{\"username\": \"${{ secrets.API_USERNAME }}\", \"password\": \"${{ secrets.API_PASSWORD }}\"}")
 
             TOKEN=$(echo "$RESPONSE" | python3 -c "
-          import sys, json
-          try:
-              data = json.loads(sys.stdin.read())
-              print(data.get('token', ''))
-          except:
-              print('')
-          ")
+import sys, json
+try:
+    data = json.loads(sys.stdin.read())
+    print(data.get('token', '').strip())
+except Exception:
+    pass
+")
 
-            if [ -n \"$TOKEN\" ]; then
-              echo \"Token acquired.\"
-              echo \"::add-mask::$TOKEN\"
-              echo \"token=$TOKEN\" >> $GITHUB_OUTPUT
+            if [ -n "$TOKEN" ]; then
+              echo "Token acquired."
+              echo "::add-mask::$TOKEN"
+              printf "token=%s\n" "$TOKEN" >> "$GITHUB_OUTPUT"
               exit 0
             fi
 
-            echo \"No token received yet.\"
-            echo \"Retrying in $RETRY_DELAY seconds...\"
+            echo "No token yet. Retrying in $RETRY_DELAY seconds..."
             sleep $RETRY_DELAY
           done
 
-          echo \"Failed to obtain token after $MAX_RETRIES attempts.\"
+          echo "Failed to obtain token after $MAX_RETRIES attempts."
           exit 1
 
       - name: Call generate worksheet endpoint
