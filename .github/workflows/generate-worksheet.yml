@@ -29,7 +29,6 @@ jobs:
               -H "Content-Type: application/json" \
               -d "{\"username\": \"${{ secrets.API_USERNAME }}\", \"password\": \"${{ secrets.API_PASSWORD }}\"}")
 
-            echo "Response: $RESPONSE"
             TOKEN=$(echo "$RESPONSE" | jq -r '.token // empty' | tr -d '\n\r')
 
             if [ -n "$TOKEN" ]; then
