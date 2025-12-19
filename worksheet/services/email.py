@@ -18,30 +18,19 @@ def normalize_to_list(value):
     if isinstance(value, list):
         return value
     elif isinstance(value, str):
-        sentences = []
-
         # Pattern 1: Split by '", "' (for quoted list strings)
-        parts = value.split('", "')
-        if len(parts) > 1:
-            sentences = [s.strip().strip('"').strip("'") for s in parts]
-        else:
-            # Pattern 2: Split by '., ' (period, comma, space - sentence boundaries)
+        if '", "' in value:
+            return [s.strip().strip('"').strip("'") for s in value.split('", "')]
+
+        # Pattern 2: Split by '., ' (period, comma, space - sentence boundaries)
+        if "., " in value:
             parts = value.split("., ")
-            if len(parts) > 1:
-                # Re-add the period to each sentence (except the last one if it already has it)
-                sentences = []
-                for i, s in enumerate(parts):
-                    s = s.strip()
-                    # Add period back if not the last item or if last item doesn't end with period
-                    if i < len(parts) - 1:
-                        sentences.append(s + ".")
-                    else:
-                        # Last item - keep as is (may or may not have period)
-                        sentences.append(s)
-            else:
-                # Fallback: return as single item
-                sentences = [value]
-        return sentences
+            return [
+                s.strip() + ("." if i < len(parts) - 1 else "")
+                for i, s in enumerate(parts)
+            ]
+
+        return [value]
     else:
         return []
 
