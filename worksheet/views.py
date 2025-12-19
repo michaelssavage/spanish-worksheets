@@ -59,7 +59,7 @@ class GenerateLLMContentView(GenericAPIView):
             logger.info("No themes provided, fetching from topic rotator")
             themes = get_and_increment_topics()
 
-        payload = build_payload([], themes)
+        payload = build_payload(themes)
         content = call_llm(payload)
 
         logger.info(

@@ -72,12 +72,10 @@ def call_llm(predictions_payload):
 def generate_worksheet_for(user):
     logger.info(f"Starting worksheet generation for user: {user.email} (ID: {user.id})")
 
-    forbidden = []
-
     themes = get_and_increment_topics()
     logger.info(f"Selected themes: {themes}")
 
-    payload = build_payload(forbidden, themes)
+    payload = build_payload(themes)
 
     logger.info("Calling LLM to generate worksheet content")
     content = call_llm(payload)

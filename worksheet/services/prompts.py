@@ -3,10 +3,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = (
-    "You generate Spanish-learning worksheets. "
-    "Produce clear, accurate Spanish examples suitable for intermediate learners. "
-    "Avoid repeating any forbidden content."
+    "You generate Spanish-learning worksheets for intermediate learners. "
+    "Produce clear, natural, idiomatic Spanish. "
+    "Prioritize the use of irregular verbs across all tenses. "
+    "(e.g., ser, ir, estar, tener, hacer, poder, decir, venir, poner, querer). "
+    "Sentences should sound natural and realistic, not artificial drills."
 )
+
 
 THEME_POOLS = [
     ["familia", "comida", "rutinas diarias"],
@@ -18,34 +21,61 @@ THEME_POOLS = [
 ]
 
 
-def build_user_prompt(forbidden_sentences, themes):
+def build_user_prompt(themes):
     """
-    forbidden_sentences: list of strings
     Returns a structured user prompt as a single string.
     """
 
-    forbidden_block = "\n".join(f"- {s}" for s in forbidden_sentences) or "None."
     theme_block = ", ".join(themes)
 
-    # Build the prompt
     prompt = f"""
 Generate a Spanish worksheet.
 
 Themes for this worksheet:
 {theme_block}
 
-Forbidden sentences:
-{forbidden_block}
+General requirements:
+- Use many irregular verbs (at least half of the sentences per section).
+- Each sentence must contain one or two blanks marked with "___".
+- A sentence may NOT contain more than two blanks.
+- Blanks may appear in the same verb phrase or in different verbs.
+- Spanish only.
 
 Sections required:
-1. Past tense: 10 sentences with a missing verb (user fills the correct past form).
-2. Present tense: 10 sentences with a missing verb (user fills the correct present form).
-3. Future tense: 10 sentences with a missing verb (user fills the correct future form).
-4. Vocabulary expansion: 10 natural sentences with mixed vocabulary.
+
+1. Past tenses:
+   - 10 sentences total.
+   - Mix of:
+     - Pretérito indefinido
+     - Pretérito imperfecto
+     - Pretérito perfecto
+     - Pluscuamperfecto
+   - Each sentence must clearly indicate which tense is required from context.
+
+2. Present tenses:
+   - 10 sentences total.
+   - Mix of:
+     - Presente de indicativo
+     - Presente perfecto
+     - Presente progresivo
+   - Focus on common irregular present forms.
+
+3. Future tenses:
+   - 10 sentences total.
+   - Mix of:
+     - Futuro simple
+     - Futuro próximo (ir a + infinitivo)
+     - Condicional simple
+   - Emphasize irregular future and conditional stems.
+
+4. Vocabulary expansion:
+   - 10 complete sentences (no blanks).
+   - Natural usage of vocabulary from the themes.
+   - Include a variety of tenses.
 
 Output format:
 JSON only.
-Use this structure:
+Use this structure exactly:
 
 {{
   "past": ["sentence1", "..."],
@@ -55,23 +85,21 @@ Use this structure:
 }}
 
 Rules:
-- No English.
-- No repetition of forbidden sentences.
 - Exactly 10 sentences per section.
 - No explanations.
+- No metadata.
+- No English.
     """.strip()
 
     return prompt
 
 
-def build_payload(forbidden_sentences, themes):
+def build_payload(themes):
     """
-    Returns the full model payload for OpenAI or DeepSeek (depending on client).
+    Returns the full model payload for DeepSeek.
     """
-    logger.debug(
-        f"Building payload with {len(forbidden_sentences)} forbidden sentences and themes: {themes}"
-    )
-    user_prompt = build_user_prompt(forbidden_sentences, themes)
+    logger.debug(f"Building payload with themes: {themes}")
+    user_prompt = build_user_prompt(themes)
 
     payload = [
         {"role": "system", "content": SYSTEM_PROMPT},
