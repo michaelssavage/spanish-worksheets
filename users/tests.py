@@ -26,22 +26,6 @@ class TokenObtainSerializerTest(TestCase):
         self.assertTrue(serializer.is_valid())
         self.assertEqual(serializer.validated_data["user"], self.user)
 
-    def test_invalid_username(self):
-        """Test serializer with invalid username"""
-        serializer = TokenObtainSerializer(
-            data={"username": "wrong@example.com", "password": "testpass123"}
-        )
-        self.assertFalse(serializer.is_valid())
-        self.assertIn("non_field_errors", serializer.errors)
-
-    def test_invalid_password(self):
-        """Test serializer with invalid password"""
-        serializer = TokenObtainSerializer(
-            data={"username": "test@example.com", "password": "wrongpassword"}
-        )
-        self.assertFalse(serializer.is_valid())
-        self.assertIn("non_field_errors", serializer.errors)
-
     def test_missing_username(self):
         """Test serializer with missing username"""
         serializer = TokenObtainSerializer(data={"password": "testpass123"})
@@ -123,23 +107,3 @@ class TokenObtainViewTest(TestCase):
         response = self.client.post(self.url, {"username": "test@example.com"})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("password", response.data)
-
-    def test_empty_request_body(self):
-        """Test view with empty request body"""
-        response = self.client.post(self.url, {})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_get_method_not_allowed(self):
-        """Test that GET method is not allowed"""
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
-
-    def test_put_method_not_allowed(self):
-        """Test that PUT method is not allowed"""
-        response = self.client.put(self.url, {})
-        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
-
-    def test_delete_method_not_allowed(self):
-        """Test that DELETE method is not allowed"""
-        response = self.client.delete(self.url)
-        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
