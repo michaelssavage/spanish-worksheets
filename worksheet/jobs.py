@@ -2,7 +2,9 @@ import logging
 from django_rq import job
 from django.contrib.auth import get_user_model
 
-from .services import generate_worksheet_for, send_worksheet_email
+from worksheet.services.email import send_worksheet_email
+from worksheet.services.generate import generate_worksheet_for
+
 
 logger = logging.getLogger(__name__)
 User = get_user_model()

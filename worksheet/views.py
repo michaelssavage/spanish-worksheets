@@ -6,6 +6,7 @@ from worksheet.serializers import (
 )
 from django_rq import enqueue, get_queue
 from rq.job import Job
+from rq.exceptions import NoSuchJobError
 from worksheet.services.generate import call_llm
 from worksheet.services.email import send_worksheet_email
 from worksheet.services.prompts import build_payload
@@ -69,7 +70,12 @@ class WorksheetJobStatusView(GenericAPIView):
 
     def get(self, request, job_id):
         queue = get_queue("default")
-        job = Job.fetch(job_id, connection=queue.connection)
+        try:
+            job = Job.fetch(job_id, connection=queue.connection)
+        except NoSuchJobError:
+            return Response(
+                {"error": "Job not found"}, status=status.HTTP_404_NOT_FOUND
+            )
 
         return Response(
             {
