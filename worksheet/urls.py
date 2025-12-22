@@ -3,7 +3,7 @@ from .views import (
     GenerateLLMContentView,
     GenerateWorksheetEmailView,
     GenerateWorksheetView,
-    RunSchedulerView,
+    WorksheetJobStatusView,
 )
 
 urlpatterns = [
@@ -20,5 +20,9 @@ urlpatterns = [
         GenerateWorksheetEmailView.as_view(),
         name="generate-worksheet-email",
     ),
-    path("run-scheduler/", RunSchedulerView.as_view(), name="run-scheduler"),
+    path(
+        "worksheet-job-status/<str:job_id>/",
+        WorksheetJobStatusView.as_view(),
+        name="worksheet-job-status",
+    ),
 ]

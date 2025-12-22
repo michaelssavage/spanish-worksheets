@@ -13,7 +13,3 @@ class GenerateLLMContentResponseSerializer(serializers.Serializer):
 
 class GenerateWorksheetResponseSerializer(serializers.Serializer):
     content = serializers.CharField()
-
-
-class SchedulerResponseSerializer(serializers.Serializer):
-    status = serializers.CharField()

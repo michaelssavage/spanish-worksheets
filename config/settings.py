@@ -8,6 +8,7 @@ from decouple import config
 import dj_database_url
 
 DEEPSEEK_API_KEY = config("DEEPSEEK_API_KEY")
+REDIS_URL = config("UPSTASH_REDIS_URL")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -45,11 +46,19 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     "drf_spectacular",
+    "django_rq",
     # app
     "users",
     "worksheet",
     "recipients",
 ]
+
+RQ_QUEUES = {
+    "default": {
+        "URL": REDIS_URL,
+        "DEFAULT_TIMEOUT": 600,  # allow long LLM calls
+    }
+}
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [

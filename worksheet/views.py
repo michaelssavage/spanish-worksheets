@@ -1,15 +1,12 @@
-from django.utils import timezone
-from datetime import timedelta
-
-from drf_spectacular.utils import extend_schema
-from users.models import User
+from worksheet.jobs import generate_worksheet_job
 from worksheet.serializers import (
     GenerateLLMContentRequestSerializer,
     GenerateLLMContentResponseSerializer,
     GenerateWorksheetResponseSerializer,
-    SchedulerResponseSerializer,
 )
-from worksheet.services.generate import generate_worksheet_for, call_llm
+from django_rq import enqueue, get_queue
+from rq.job import Job
+from worksheet.services.generate import call_llm
 from worksheet.services.email import send_worksheet_email
 from worksheet.services.prompts import build_payload
 from worksheet.services.topic_rotator import get_and_increment_topics
@@ -23,26 +20,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class RunSchedulerView(GenericAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = SchedulerResponseSerializer
-
-    def get(self, request):
-        today = timezone.now().date()
-        logger.info(f"Starting scheduler: {today}")
-
-        users = User.objects.filter(active=True, next_delivery=today)
-
-        for u in users:
-            content = generate_worksheet_for(u)
-            if content:
-                send_worksheet_email(u, content)
-            u.next_delivery = today + timedelta(days=2)
-            u.save()
-
-        return Response({"status": "ok"})
-
-
+# Return the content to the user, no email is sent
 class GenerateLLMContentView(GenericAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = GenerateLLMContentRequestSerializer
@@ -69,33 +47,40 @@ class GenerateLLMContentView(GenericAPIView):
         return Response({"content": content})
 
 
-@extend_schema(
-    request=None,
-    responses=GenerateWorksheetResponseSerializer,
-)
 class GenerateWorksheetView(GenericAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = GenerateWorksheetResponseSerializer
 
     def post(self, request):
         logger.info(f"generate_worksheet called by user: {request.user.email}")
 
-        content = generate_worksheet_for(request.user)
+        job = enqueue(generate_worksheet_job, request.user.id)
 
-        if content is None:
-            return Response(
-                {"error": "Duplicate worksheet detected"},
-                status=status.HTTP_409_CONFLICT,
-            )
-
-        try:
-            send_worksheet_email(request.user, content)
-        except Exception as e:
-            logger.error(f"Failed to send email: {e}")
-
-        return Response({"content": content})
+        return Response(
+            {
+                "message": "Worksheet generation started",
+                "job_id": job.id,
+            },
+            status=status.HTTP_202_ACCEPTED,
+        )
 
 
+class WorksheetJobStatusView(GenericAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, job_id):
+        queue = get_queue("default")
+        job = Job.fetch(job_id, connection=queue.connection)
+
+        return Response(
+            {
+                "status": job.get_status(),
+                "result": job.result,
+                "failed": job.is_failed,
+            }
+        )
+
+
+# No llm request send, only send an existing worksheet email to the user
 class GenerateWorksheetEmailView(GenericAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = GenerateWorksheetResponseSerializer
