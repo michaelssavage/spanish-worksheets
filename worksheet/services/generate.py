@@ -24,7 +24,7 @@ def extract_json_from_response(content: str) -> str | None:
     except json.JSONDecodeError:
         pass
 
-    # 2. Try fenced code blocks ```json ... ``` or ``` ... ```
+    # 2. Markdown code block
     code_block_pattern = r"```(?:json)?\s*(\{.*?\})\s*```"
     match = re.search(code_block_pattern, content, re.DOTALL)
 
@@ -37,7 +37,7 @@ def extract_json_from_response(content: str) -> str | None:
         except json.JSONDecodeError:
             pass
 
-    # 3. Last resort: first JSON-looking object
+    # 3. Raw object fallback
     object_pattern = r"\{.*\}"
     match = re.search(object_pattern, content, re.DOTALL)
 
@@ -54,23 +54,45 @@ def extract_json_from_response(content: str) -> str | None:
     return None
 
 
-def call_llm(predictions_payload: list[dict]) -> str | None:
+def call_llm(messages: list[dict]) -> str:
     client = OpenAI(
         api_key=settings.DEEPSEEK_API_KEY,
         base_url="https://api.deepseek.com",
     )
 
-    logger.info("Sending request to DeepSeek API")
     response = client.chat.completions.create(
         model="deepseek-chat",
-        messages=predictions_payload,
+        messages=messages,
         temperature=0.7,
     )
 
-    content = response.choices[0].message.content
-    logger.info("Received response from LLM (%d chars)", len(content))
+    return response.choices[0].message.content
 
-    return extract_json_from_response(content)
+
+def fix_json_structure_once(broken_content: str) -> str | None:
+    """
+    Ask the LLM once to fix JSON structure only.
+    """
+    logger.warning("Attempting one JSON structure repair")
+
+    repair_prompt = [
+        {
+            "role": "system",
+            "content": "You fix malformed JSON. You never change content.",
+        },
+        {
+            "role": "user",
+            "content": (
+                "Fix the JSON structure only.\n"
+                "Do not change, add, remove, or reorder any sentences.\n"
+                "Return valid JSON only.\n\n"
+                f"{broken_content}"
+            ),
+        },
+    ]
+
+    repaired = call_llm(repair_prompt)
+    return extract_json_from_response(repaired)
 
 
 def generate_worksheet_for(user):
@@ -81,44 +103,43 @@ def generate_worksheet_for(user):
     )
 
     themes = get_and_increment_topics()
-    logger.info("Selected themes: %s", themes)
-
     payload = build_payload(themes)
 
     logger.info("Calling LLM to generate worksheet content")
-    content = call_llm(payload)
+    raw_content = call_llm(payload)
+
+    content = extract_json_from_response(raw_content)
+
+    # One repair attempt if extraction failed
+    if content is None:
+        content = fix_json_structure_once(raw_content)
 
     if content is None:
-        logger.error("Worksheet generation failed: no valid JSON returned")
+        logger.error("Worksheet generation failed: JSON could not be repaired")
         return None
 
-    # Hard validation gate
+    # Final hard validation
     try:
         parsed = json.loads(content)
     except json.JSONDecodeError:
-        logger.error("Extracted content is not valid JSON after extraction")
+        logger.error("JSON invalid after repair attempt")
         return None
 
     required_keys = {"past", "present", "future", "vocab"}
     if set(parsed.keys()) != required_keys:
         logger.error(
-            "Invalid worksheet structure. Expected keys %s, got %s",
+            "Invalid worksheet structure. Expected %s, got %s",
             required_keys,
             set(parsed.keys()),
         )
         return None
 
     h = hashlib.sha256(content.encode("utf-8")).hexdigest()
-    logger.debug("Content hash: %s...", h[:16])
 
     if Worksheet.objects.filter(content_hash=h).exists():
-        logger.warning(
-            "Duplicate worksheet detected (hash: %s...), aborting save",
-            h[:16],
-        )
+        logger.warning("Duplicate worksheet detected, aborting save")
         return None
 
-    logger.info("Saving new worksheet to database (replacing prior user worksheet)")
     Worksheet.objects.filter(user=user).delete()
     Worksheet.objects.create(
         user=user,
