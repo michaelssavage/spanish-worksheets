@@ -30,29 +30,32 @@ Themes:
 Requirements:
 - Spanish only.
 - Use many irregular verbs (at least half per section).
-- Each sentence must contain one or two blanks marked with "___".
+- Each blank must be written exactly as: ___ (infinitive verb)
+- The verb in parentheses must be the infinitive form of the missing verb.
+- Every sentence must contain at least one blank with a verb in parentheses.
+- No blank may appear without its corresponding verb in parentheses.
 - No sentence may contain more than two blanks.
 
 Sections:
 
-Past tenses (10 sentences):
+Past tenses (7 sentences):
 - Pretérito indefinido
 - Pretérito imperfecto
 - Pretérito perfecto
 - Pluscuamperfecto
 
-Present tenses (10 sentences):
+Present tenses (7 sentences):
 - Presente de indicativo
 - Presente perfecto
 - Presente progresivo
 
-Future tenses (10 sentences):
+Future tenses (7 sentences):
 - Futuro simple
 - Futuro próximo (ir a + infinitivo)
 - Condicional simple
 
 Vocabulary:
-- 10 complete sentences
+- 7 complete sentences
 - No blanks
 - Natural usage of the themes
 - Mixed tenses
@@ -70,9 +73,6 @@ Do not add text outside the JSON.
     "",
     "",
     "",
-    "",
-    "",
-    ""
   ],
   "present": [
     "",
@@ -82,9 +82,6 @@ Do not add text outside the JSON.
     "",
     "",
     "",
-    "",
-    "",
-    ""
   ],
   "future": [
     "",
@@ -94,9 +91,6 @@ Do not add text outside the JSON.
     "",
     "",
     "",
-    "",
-    "",
-    ""
   ],
   "vocab": [
     "",
@@ -106,9 +100,6 @@ Do not add text outside the JSON.
     "",
     "",
     "",
-    "",
-    "",
-    ""
   ]
 }}
 
