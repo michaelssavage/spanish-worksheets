@@ -6,6 +6,7 @@ from django.contrib import messages
 from .models import User
 from worksheet.services.generate import generate_worksheet_for
 from worksheet.services.email import send_worksheet_email
+from worksheet.models import Worksheet
 
 
 @admin.register(User)
@@ -63,7 +64,10 @@ class UserAdmin(BaseUserAdmin):
             try:
                 content = generate_worksheet_for(user)
                 if content:
-                    send_worksheet_email(user, content)
+                    # Get the worksheet to retrieve themes
+                    worksheet = Worksheet.objects.filter(user=user).order_by("-created_at").first()
+                    themes = worksheet.themes if worksheet and worksheet.themes else None
+                    send_worksheet_email(user, content, theme=themes)
                     # Update next_delivery date
                     today = timezone.now().date()
                     user.next_delivery = today + timedelta(days=2)

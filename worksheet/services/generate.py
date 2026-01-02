@@ -146,6 +146,7 @@ def generate_worksheet_for(user):
         content_hash=h,
         content=content,
         topics=["past", "present", "future", "vocab"],
+        themes=themes,
     )
 
     logger.info("Worksheet saved successfully for user: %s", user.email)

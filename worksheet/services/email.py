@@ -35,7 +35,7 @@ def normalize_to_list(value):
         return []
 
 
-def format_worksheet_html(content_json):
+def format_worksheet_html(content_json, theme=None):
     """Parse JSON content and format it as HTML with 4 numbered lists."""
     try:
         # Parse the JSON content
@@ -50,11 +50,20 @@ def format_worksheet_html(content_json):
         future = normalize_to_list(data.get("future", []))
         vocab = normalize_to_list(data.get("vocab", []))
 
+        # Format theme for display
+        if theme:
+            if isinstance(theme, list):
+                theme_display = ", ".join(theme)
+            else:
+                theme_display = str(theme)
+        else:
+            theme_display = "Your Spanish Worksheet"
+
         # Build HTML with numbered lists
-        html_content = """
+        html_content = f"""
         <html>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-            <h2 style="color: #2c3e50;">Your Spanish Worksheet</h2>
+            <h2 style="color: #2c3e50;">{escape(theme_display)}</h2>
 
             <h3 style="color: #34495e; margin-top: 30px;">1. Past Tense</h3>
             <ol style="margin-left: 20px;">
@@ -107,7 +116,7 @@ def format_worksheet_html(content_json):
         return f"<html><body><pre>{content_json}</pre></body></html>"
 
 
-def send_worksheet_email(user, content):
+def send_worksheet_email(user, content, theme=None):
     """Send worksheet email to user and their additional recipients."""
     logger.info(f"Sending worksheet email to {user.email}")
 
@@ -115,7 +124,7 @@ def send_worksheet_email(user, content):
     all_recipients = list(user.email_recipients.values_list("email", flat=True))
 
     subject = "Your Spanish Worksheet"
-    html_message = format_worksheet_html(content)
+    html_message = format_worksheet_html(content, theme=theme)
 
     try:
         if isinstance(content, str):

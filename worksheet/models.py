@@ -11,6 +11,7 @@ class Worksheet(models.Model):
     content = models.TextField(null=True, blank=True)
 
     topics = models.JSONField(null=True, blank=True)
+    themes = models.JSONField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.email} - {self.created_at.date()}"

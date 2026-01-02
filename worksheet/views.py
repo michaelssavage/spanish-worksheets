@@ -97,7 +97,7 @@ class GenerateWorksheetEmailView(GenericAPIView):
         worksheet = (
             Worksheet.objects.filter(user=request.user)
             .order_by("-created_at")
-            .only("content")
+            .only("content", "themes")
             .first()
         )
 
@@ -110,7 +110,8 @@ class GenerateWorksheetEmailView(GenericAPIView):
             )
 
         try:
-            send_worksheet_email(request.user, worksheet.content)
+            themes = worksheet.themes if worksheet.themes else None
+            send_worksheet_email(request.user, worksheet.content, theme=themes)
         except Exception as e:
             logger.error(f"Failed to resend worksheet email: {e}")
             return Response(

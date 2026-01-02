@@ -23,7 +23,11 @@ def generate_worksheet_job(user_id):
         return {"status": "duplicate"}
 
     try:
-        send_worksheet_email(user, content)
+        from worksheet.models import Worksheet
+
+        worksheet = Worksheet.objects.filter(user=user).order_by("-created_at").first()
+        themes = worksheet.themes if worksheet and worksheet.themes else None
+        send_worksheet_email(user, content, theme=themes)
     except Exception as e:
         logger.error(f"Email failed: {e}")
 
