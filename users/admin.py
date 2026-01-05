@@ -65,8 +65,14 @@ class UserAdmin(BaseUserAdmin):
                 content = generate_worksheet_for(user)
                 if content:
                     # Get the worksheet to retrieve themes
-                    worksheet = Worksheet.objects.filter(user=user).order_by("-created_at").first()
-                    themes = worksheet.themes if worksheet and worksheet.themes else None
+                    worksheet = (
+                        Worksheet.objects.filter(user=user)
+                        .order_by("-created_at")
+                        .first()
+                    )
+                    themes = (
+                        worksheet.themes if worksheet and worksheet.themes else None
+                    )
                     send_worksheet_email(user, content, theme=themes)
                     # Update next_delivery date
                     today = timezone.now().date()

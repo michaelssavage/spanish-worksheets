@@ -16,7 +16,9 @@ class Command(BaseCommand):
             content = generate_worksheet_for(u)
             if content:
                 # Get the worksheet to retrieve themes
-                worksheet = Worksheet.objects.filter(user=u).order_by("-created_at").first()
+                worksheet = (
+                    Worksheet.objects.filter(user=u).order_by("-created_at").first()
+                )
                 themes = worksheet.themes if worksheet and worksheet.themes else None
                 send_worksheet_email(u, content, theme=themes)
             u.next_delivery = today + timedelta(days=2)
