@@ -2,7 +2,7 @@ name: Generate Worksheet
 
 on:
   schedule:
-    - cron: "0 14 */3 * *"
+    - cron: "0 14 */2 * *"
   workflow_dispatch:
 
 jobs:
