@@ -96,7 +96,7 @@ def format_worksheet_html(content_json, theme=None):
 
         html_content += """            </ol>
 
-            <h3 style="color: #34495e; margin-top: 30px;">4. Vocabulary Expansion</h3>
+            <h3 style="color: #34495e; margin-top: 30px;">4. Error Correction</h3>
             <ol style="margin-left: 20px;">
         """
 
