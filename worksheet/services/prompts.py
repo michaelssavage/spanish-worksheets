@@ -35,6 +35,9 @@ Requirements:
 - Every sentence must contain at least one blank with a verb in parentheses.
 - No blank may appear without its corresponding verb in parentheses.
 - No sentence may contain more than two blanks.
+- In the error correction section, the error must be subtle
+- (wrong tense or wrong irregular form), not spelling.
+- Do not use obvious mistakes like "yo sabo" or "yo cabo".
 
 Sections:
 
@@ -53,11 +56,12 @@ Future tenses (7 sentences):
 - Futuro simple
 - Condicional simple
 
-Vocabulary:
-- 7 complete sentences
-- No blanks
-- Natural usage of the themes
-- Mixed tenses
+Error correction (7 sentences):
+- Each sentence must contain exactly ONE verb error.
+- The error must be a tense or conjugation error.
+- The incorrect verb must be an irregular verb.
+- The rest of the sentence must be correct and natural.
+- Do not mark or explain the error.
 
 Fill in the following JSON exactly.
 Do not add, remove, or rename keys.
