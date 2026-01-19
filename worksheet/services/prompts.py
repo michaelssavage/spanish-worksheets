@@ -11,14 +11,13 @@ SYSTEM_PROMPT = (
 )
 
 THEME_POOLS = [
-    ["familia", "comida", "rutinas diarias"],
-    ["viajes", "hoteles", "transporte público"],
-    ["compras", "dinero", "tiendas"],
-    ["clima", "estaciones", "naturaleza"],
-    ["salud", "actividad física", "deportes"],
-    ["tecnología", "oficina", "estudio"],
+    ["familia", "conflictos", "decisiones difíciles"],
+    ["viajes", "retrasos", "problemas logísticos"],
+    ["compras", "deudas", "devoluciones"],
+    ["clima extremo", "planes cancelados", "emergencias"],
+    ["salud", "lesiones", "cambios de hábitos"],
+    ["tecnología", "fallos técnicos", "plazos"],
 ]
-
 
 def build_user_prompt(themes: list[str]) -> str:
     theme_block = ", ".join(themes)
@@ -30,6 +29,7 @@ Themes:
 Requirements:
 - Spanish only.
 - Use many irregular verbs (at least half per section).
+- Do NOT use "ir a + infinitive" in any form.
 - Each blank must be written exactly as: ___ (infinitive verb)
 - The verb in parentheses must be the infinitive form of the missing verb.
 - Every sentence must contain at least one blank with a verb in parentheses.
@@ -51,7 +51,6 @@ Present tenses (7 sentences):
 
 Future tenses (7 sentences):
 - Futuro simple
-- Futuro próximo (ir a + infinitivo)
 - Condicional simple
 
 Vocabulary:
