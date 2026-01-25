@@ -60,49 +60,63 @@ def format_worksheet_html(content_json, theme=None):
             theme_display = "Your Spanish Worksheet"
 
         # Build HTML with numbered lists
+        # Use explicit numbering in text for better Notion compatibility when copying
         html_content = f"""
         <html>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
             <h2 style="color: #2c3e50;">{escape(theme_display)}</h2>
 
-            <h3 style="color: #34495e; margin-top: 30px;">1. Past Tense</h3>
-            <ol style="margin-left: 20px;">
+            <h3 style="color: #34495e; margin-top: 30px;">Past Tense</h3>
+            <ol style="margin-left: 20px; list-style-type: decimal;">
         """
 
-        for sentence in past:
+        for i, sentence in enumerate(past, 1):
             # Escape HTML special characters to prevent XSS
             escaped_sentence = escape(str(sentence))
-            html_content += f'                <li style="margin-bottom: 10px;">{escaped_sentence}</li>\n'
+            # Include explicit number in text for Notion compatibility
+            html_content += (
+                f'                <li style="margin-bottom: 10px;">'
+                f"<span>{i}. </span>{escaped_sentence}</li>\n"
+            )
 
         html_content += """            </ol>
 
-            <h3 style="color: #34495e; margin-top: 30px;">2. Present Tense</h3>
-            <ol style="margin-left: 20px;">
+            <h3 style="color: #34495e; margin-top: 30px;">Present Tense</h3>
+            <ol style="margin-left: 20px; list-style-type: decimal;">
         """
 
-        for sentence in present:
+        for i, sentence in enumerate(present, 1):
             escaped_sentence = escape(str(sentence))
-            html_content += f'                <li style="margin-bottom: 10px;">{escaped_sentence}</li>\n'
+            html_content += (
+                f'                <li style="margin-bottom: 10px;">'
+                f"<span>{i}. </span>{escaped_sentence}</li>\n"
+            )
 
         html_content += """            </ol>
 
-            <h3 style="color: #34495e; margin-top: 30px;">3. Future Tense</h3>
-            <ol style="margin-left: 20px;">
+            <h3 style="color: #34495e; margin-top: 30px;">Future Tense</h3>
+            <ol style="margin-left: 20px; list-style-type: decimal;">
         """
 
-        for sentence in future:
+        for i, sentence in enumerate(future, 1):
             escaped_sentence = escape(str(sentence))
-            html_content += f'                <li style="margin-bottom: 10px;">{escaped_sentence}</li>\n'
+            html_content += (
+                f'                <li style="margin-bottom: 10px;">'
+                f"<span>{i}. </span>{escaped_sentence}</li>\n"
+            )
 
         html_content += """            </ol>
 
-            <h3 style="color: #34495e; margin-top: 30px;">4. Error Correction</h3>
-            <ol style="margin-left: 20px;">
+            <h3 style="color: #34495e; margin-top: 30px;">Error Correction</h3>
+            <ol style="margin-left: 20px; list-style-type: decimal;">
         """
 
-        for sentence in vocab:
+        for i, sentence in enumerate(vocab, 1):
             escaped_sentence = escape(str(sentence))
-            html_content += f'                <li style="margin-bottom: 10px;">{escaped_sentence}</li>\n'
+            html_content += (
+                f'                <li style="margin-bottom: 10px;">'
+                f"<span>{i}. </span>{escaped_sentence}</li>\n"
+            )
 
         html_content += """            </ol>
         </body>

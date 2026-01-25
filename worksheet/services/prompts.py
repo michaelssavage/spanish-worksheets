@@ -19,6 +19,7 @@ THEME_POOLS = [
     ["tecnología", "fallos técnicos", "plazos"],
 ]
 
+
 def build_user_prompt(themes: list[str]) -> str:
     theme_block = ", ".join(themes)
 
@@ -57,11 +58,12 @@ Future tenses (7 sentences):
 - Condicional simple
 
 Error correction (7 sentences):
-- Each sentence must contain exactly ONE verb error.
-- The error must be a tense or conjugation error.
-- The incorrect verb must be an irregular verb.
-- The rest of the sentence must be correct and natural.
-- Do not mark or explain the error.
+- Each sentence must contain exactly ONE incorrect verb form.
+- The error must be grammatical (wrong tense or wrong irregular conjugation), not spelling.
+- All other words and structures in the sentence must be correct and natural.
+- Write only the sentence containing the error.
+- Do NOT include corrections, hints, explanations, or parenthetical notes.
+- Do NOT mark or highlight the error in any way.
 
 Fill in the following JSON exactly.
 Do not add, remove, or rename keys.
