@@ -1,5 +1,6 @@
 import json
 import logging
+import random
 import requests
 from django.conf import settings
 from django.utils.html import escape
@@ -45,10 +46,15 @@ def format_worksheet_html(content_json, theme=None):
             data = content_json
 
         # Extract the four sections and normalize to lists
-        past = normalize_to_list(data.get("past", []))
-        present = normalize_to_list(data.get("present", []))
-        future = normalize_to_list(data.get("future", []))
-        vocab = normalize_to_list(data.get("vocab", []))
+        sections = [
+            ("Past Tense", normalize_to_list(data.get("past", []))),
+            ("Present Tense", normalize_to_list(data.get("present", []))),
+            ("Future Tense", normalize_to_list(data.get("future", []))),
+            ("Error Correction", normalize_to_list(data.get("vocab", []))),
+        ]
+
+        # Randomize the order of sections
+        random.shuffle(sections)
 
         # Format theme for display
         if theme:
@@ -65,61 +71,28 @@ def format_worksheet_html(content_json, theme=None):
         <html>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
             <h2 style="color: #2c3e50;">{escape(theme_display)}</h2>
+        """
 
-            <h3 style="color: #34495e; margin-top: 30px;">Past Tense</h3>
+        # Build each section dynamically in randomized order
+        for section_title, sentences in sections:
+            html_content += f"""
+            <h3 style="color: #34495e; margin-top: 30px;">{escape(section_title)}</h3>
             <ol style="margin-left: 20px; list-style-type: decimal;">
         """
 
-        for i, sentence in enumerate(past, 1):
-            # Escape HTML special characters to prevent XSS
-            escaped_sentence = escape(str(sentence))
-            # Include explicit number in text for Notion compatibility
-            html_content += (
-                f'                <li style="margin-bottom: 10px;">'
-                f"<span>{i}. </span>{escaped_sentence}</li>\n"
-            )
+            for i, sentence in enumerate(sentences, 1):
+                # Escape HTML special characters to prevent XSS
+                escaped_sentence = escape(str(sentence))
+                # Include explicit number in text for Notion compatibility
+                html_content += (
+                    f'                <li style="margin-bottom: 10px;">'
+                    f"<span>{i}. </span>{escaped_sentence}</li>\n"
+                )
 
-        html_content += """            </ol>
-
-            <h3 style="color: #34495e; margin-top: 30px;">Present Tense</h3>
-            <ol style="margin-left: 20px; list-style-type: decimal;">
+            html_content += """            </ol>
         """
 
-        for i, sentence in enumerate(present, 1):
-            escaped_sentence = escape(str(sentence))
-            html_content += (
-                f'                <li style="margin-bottom: 10px;">'
-                f"<span>{i}. </span>{escaped_sentence}</li>\n"
-            )
-
-        html_content += """            </ol>
-
-            <h3 style="color: #34495e; margin-top: 30px;">Future Tense</h3>
-            <ol style="margin-left: 20px; list-style-type: decimal;">
-        """
-
-        for i, sentence in enumerate(future, 1):
-            escaped_sentence = escape(str(sentence))
-            html_content += (
-                f'                <li style="margin-bottom: 10px;">'
-                f"<span>{i}. </span>{escaped_sentence}</li>\n"
-            )
-
-        html_content += """            </ol>
-
-            <h3 style="color: #34495e; margin-top: 30px;">Error Correction</h3>
-            <ol style="margin-left: 20px; list-style-type: decimal;">
-        """
-
-        for i, sentence in enumerate(vocab, 1):
-            escaped_sentence = escape(str(sentence))
-            html_content += (
-                f'                <li style="margin-bottom: 10px;">'
-                f"<span>{i}. </span>{escaped_sentence}</li>\n"
-            )
-
-        html_content += """            </ol>
-        </body>
+        html_content += """        </body>
         </html>
         """
 
