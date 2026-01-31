@@ -107,11 +107,31 @@ def send_worksheet_email(user, content, theme=None):
     """Send worksheet email to user and their additional recipients."""
     logger.info(f"Sending worksheet email to {user.email}")
 
-    # Fetch all recipients for this user
-    all_recipients = list(user.email_recipients.values_list("email", flat=True))
+    # Always include the user, then any additional recipients (deduped)
+    additional_recipients = list(
+        user.email_recipients.values_list("email", flat=True)
+    )
+    all_recipients = [user.email] + additional_recipients
+    # Remove empties and duplicates while preserving order
+    seen = set()
+    all_recipients = [
+        email
+        for email in all_recipients
+        if email and not (email in seen or seen.add(email))
+    ]
+    logger.info(
+        "Email recipients resolved for %s: %s total",
+        user.email,
+        len(all_recipients),
+    )
 
     subject = "Your Spanish Worksheet"
     html_message = format_worksheet_html(content, theme=theme)
+    logger.debug(
+        "Email content prepared for %s (html length=%s)",
+        user.email,
+        len(html_message),
+    )
 
     try:
         if isinstance(content, str):
@@ -139,10 +159,13 @@ def send_worksheet_email(user, content, theme=None):
         raise ValueError(
             "Mailgun settings MAILGUN_API_KEY and MAILGUN_DOMAIN are required."
         )
+    if not all_recipients:
+        raise ValueError("No recipients found for worksheet email.")
 
     url = (
         f"{settings.MAILGUN_BASE_URL.rstrip('/')}/v3/{settings.MAILGUN_DOMAIN}/messages"
     )
+    logger.info("Sending email via Mailgun domain: %s", settings.MAILGUN_DOMAIN)
     data = {
         "from": settings.DEFAULT_FROM_EMAIL,
         "to": all_recipients,
@@ -161,7 +184,8 @@ def send_worksheet_email(user, content, theme=None):
 
         if response.ok:
             logger.info(
-                f"Email sent successfully to {len(all_recipients)} recipients via Mailgun"
+                "Email sent successfully to %s recipients via Mailgun",
+                len(all_recipients),
             )
             return
 
