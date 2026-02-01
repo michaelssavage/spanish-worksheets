@@ -77,7 +77,7 @@ class FormatWorksheetHtmlTest(TestCase):
                 "past": ["Ayer fui al parque.", "Comí pizza."],
                 "present": ["Voy a la escuela.", "Estudio español."],
                 "future": ["Mañana viajaré.", "Compraré un coche."],
-                "vocab": ["palabra", "frase"],
+                "error_correction": ["palabra", "frase"],
             }
         )
         result = format_worksheet_html(content)
@@ -96,7 +96,7 @@ class FormatWorksheetHtmlTest(TestCase):
             "past": ["Sentence 1"],
             "present": ["Sentence 2"],
             "future": ["Sentence 3"],
-            "vocab": ["word"],
+            "error_correction": ["word"],
         }
         result = format_worksheet_html(content)
 
@@ -125,7 +125,7 @@ class FormatWorksheetHtmlTest(TestCase):
             "past": '"Sentence 1", "Sentence 2"',  # String that should be split
             "present": ["Normal list"],
             "future": "Single sentence., Another sentence.",
-            "vocab": ["word"],
+            "error_correction": ["word"],
         }
         result = format_worksheet_html(content)
 
@@ -140,7 +140,7 @@ class FormatWorksheetHtmlTest(TestCase):
             "past": ["<script>alert('xss')</script>", "Normal & safe"],
             "present": ["<img src=x onerror=alert(1)>"],
             "future": ["'quotes' & \"more quotes\""],
-            "vocab": ["<b>bold</b>"],
+            "error_correction": ["<b>bold</b>"],
         }
         result = format_worksheet_html(content)
 
@@ -210,7 +210,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Ayer fui al parque."],
             "present": ["Voy a la escuela."],
             "future": ["Mañana viajaré."],
-            "vocab": ["palabra"],
+            "error_correction": ["palabra"],
         }
 
         # Execute
@@ -252,7 +252,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Test"],
             "present": ["Test"],
             "future": ["Test"],
-            "vocab": ["Test"],
+            "error_correction": ["Test"],
         }
         send_worksheet_email(self.user, content)
 
@@ -278,7 +278,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Test"],
             "present": ["Test"],
             "future": ["Test"],
-            "vocab": ["Test"],
+            "error_correction": ["Test"],
         }
 
         with self.assertRaises(ValueError) as context:
@@ -298,7 +298,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Test"],
             "present": ["Test"],
             "future": ["Test"],
-            "vocab": ["Test"],
+            "error_correction": ["Test"],
         }
 
         with self.assertRaises(ValueError) as context:
@@ -329,7 +329,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Test"],
             "present": ["Test"],
             "future": ["Test"],
-            "vocab": ["Test"],
+            "error_correction": ["Test"],
         }
 
         with self.assertRaises(requests.exceptions.HTTPError):
@@ -353,7 +353,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Test"],
             "present": ["Test"],
             "future": ["Test"],
-            "vocab": ["Test"],
+            "error_correction": ["Test"],
         }
 
         with self.assertRaises(requests.exceptions.Timeout):
@@ -376,7 +376,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Ayer fui al parque.", "Comí pizza."],
             "present": ["Voy a la escuela."],
             "future": ["Mañana viajaré."],
-            "vocab": ["palabra", "frase"],
+            "error_correction": ["palabra", "frase"],
         }
         send_worksheet_email(self.user, content)
 
@@ -409,7 +409,7 @@ class SendWorksheetEmailTest(TestCase):
                 "past": ["Test past"],
                 "present": ["Test present"],
                 "future": ["Test future"],
-                "vocab": ["Test vocab"],
+                "error_correction": ["Test vocab"],
             }
         )
         send_worksheet_email(self.user, content)
@@ -437,7 +437,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Test"],
             "present": ["Test"],
             "future": ["Test"],
-            "vocab": ["Test"],
+            "error_correction": ["Test"],
         }
         send_worksheet_email(self.user, content)
 

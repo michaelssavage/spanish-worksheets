@@ -139,7 +139,9 @@ class GenerateWorksheetForTest(TestCase):
 
         worksheet = Worksheet.objects.get(user=self.user)
         self.assertEqual(worksheet.content, '{"exercise": "test content"}')
-        self.assertEqual(worksheet.topics, ["past", "present", "future", "vocab"])
+        self.assertEqual(
+            worksheet.topics, ["past", "present", "future", "error_correction"]
+        )
 
     @patch("worksheet.services.generate.call_llm")
     @patch("worksheet.services.generate.get_and_increment_topics")

@@ -50,7 +50,7 @@ def format_worksheet_html(content_json, theme=None):
             ("Past Tense", normalize_to_list(data.get("past", []))),
             ("Present Tense", normalize_to_list(data.get("present", []))),
             ("Future Tense", normalize_to_list(data.get("future", []))),
-            ("Error Correction", normalize_to_list(data.get("vocab", []))),
+            ("Error Correction", normalize_to_list(data.get("error_correction", []))),
         ]
 
         # Randomize the order of sections
@@ -77,7 +77,7 @@ def format_worksheet_html(content_json, theme=None):
         for section_title, sentences in sections:
             html_content += f"""
             <h3 style="color: #34495e; margin-top: 30px;">{escape(section_title)}</h3>
-            <ol style="margin-left: 20px; list-style-type: decimal;">
+            <div style="margin-left: 20px;">
         """
 
             for i, sentence in enumerate(sentences, 1):
@@ -85,11 +85,11 @@ def format_worksheet_html(content_json, theme=None):
                 escaped_sentence = escape(str(sentence))
                 # Include explicit number in text for Notion compatibility
                 html_content += (
-                    f'                <li style="margin-bottom: 10px;">'
-                    f"<span>{i}. </span>{escaped_sentence}</li>\n"
+                    f'                <p style="margin: 0 0 10px 0; white-space: pre-wrap;">'
+                    f"{i}. {escaped_sentence}</p>\n"
                 )
 
-            html_content += """            </ol>
+            html_content += """            </div>
         """
 
         html_content += """        </body>
@@ -108,9 +108,7 @@ def send_worksheet_email(user, content, theme=None):
     logger.info(f"Sending worksheet email to {user.email}")
 
     # Always include the user, then any additional recipients (deduped)
-    additional_recipients = list(
-        user.email_recipients.values_list("email", flat=True)
-    )
+    additional_recipients = list(user.email_recipients.values_list("email", flat=True))
     all_recipients = [user.email] + additional_recipients
     # Remove empties and duplicates while preserving order
     seen = set()
@@ -150,7 +148,9 @@ def send_worksheet_email(user, content, theme=None):
         for i, sentence in enumerate(normalize_to_list(data.get("future", [])), 1):
             plain_text += f"   {i}. {sentence}\n"
         plain_text += "\n4. Ampliación de vocabulario:\n"
-        for i, sentence in enumerate(normalize_to_list(data.get("vocab", [])), 1):
+        for i, sentence in enumerate(
+            normalize_to_list(data.get("error_correction", [])), 1
+        ):
             plain_text += f"   {i}. {sentence}\n"
     except (json.JSONDecodeError, KeyError, AttributeError):
         plain_text = str(content)

@@ -52,7 +52,7 @@ response:
       "Mañana mi madre ________ (preparar) el almuerzo temprano", 
       ......
     ],  
-    "vocab": [
+    "error_correction": [
       "Mi tío prefiere el pescado a la carne en sus comidas", 
       ....
     ]

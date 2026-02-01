@@ -3,7 +3,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = (
-    "You generate Spanish-learning worksheets for intermediate learners. "
+    "You generate Spanish-learning worksheets for intermediate/advanced learners. "
     "Produce natural, idiomatic Spanish. "
     "Prioritize irregular verbs across all tenses "
     "(ser, ir, estar, tener, hacer, poder, decir, venir, poner, querer). "
@@ -31,14 +31,7 @@ Requirements:
 - Spanish only.
 - Use many irregular verbs (at least half per section).
 - Do NOT use "ir a + infinitive" in any form.
-- Each blank must be written exactly as: ___ (infinitive verb)
-- The verb in parentheses must be the infinitive form of the missing verb.
-- Every sentence must contain at least one blank with a verb in parentheses.
-- No blank may appear without its corresponding verb in parentheses.
-- No sentence may contain more than two blanks.
-- In the error correction section, the error must be subtle
-- (wrong tense or wrong irregular form), not spelling.
-- Do not use obvious mistakes like "yo sabo" or "yo cabo".
+- Do NOT use obvious mistakes like "yo sabo" or "yo cabo".
 
 Sections:
 
@@ -47,23 +40,36 @@ Past tenses (7 sentences):
 - Pretérito imperfecto
 - Pretérito perfecto
 - Pluscuamperfecto
+- Each sentence MUST contain exactly ONE blank written as: ___ (infinitive)
+- The blank replaces a verb that should be correctly conjugated in the appropriate past tense.
+- No sentence may contain more than one blank.
 
 Present tenses (7 sentences):
 - Presente de indicativo
 - Presente perfecto
 - Presente progresivo
+- Each sentence MUST contain exactly ONE blank written as: ___ (infinitive)
+- The blank replaces a verb that should be correctly conjugated in the appropriate present tense.
+- No sentence may contain more than one blank.
 
 Future tenses (7 sentences):
 - Futuro simple
 - Condicional simple
+- Each sentence MUST contain exactly ONE blank written as: ___ (infinitive)
+- The blank replaces a verb that should be correctly conjugated in the appropriate future or conditional tense.
+- No sentence may contain more than one blank.
 
 Error correction (7 sentences):
+- Do NOT use blanks.
+- Do NOT use parentheses.
+- Each sentence must be fully written.
 - Each sentence must contain exactly ONE incorrect verb form.
-- The error must be grammatical (wrong tense or wrong irregular conjugation), not spelling.
-- All other words and structures in the sentence must be correct and natural.
+- The incorrect verb must be a real Spanish verb form, but wrong for the context
+  (wrong tense or wrong irregular conjugation).
+- All other verbs and structures in the sentence must be correct and natural.
 - Write only the sentence containing the error.
-- Do NOT include corrections, hints, explanations, or parenthetical notes.
-- Do NOT mark or highlight the error in any way.
+- Do NOT include corrections, hints, explanations, or notes.
+- If any sentence in this section contains "___" or parentheses, the output is invalid.
 
 Fill in the following JSON exactly.
 Do not add, remove, or rename keys.
@@ -77,7 +83,7 @@ Do not add text outside the JSON.
     "",
     "",
     "",
-    "",
+    ""
   ],
   "present": [
     "",
@@ -86,7 +92,7 @@ Do not add text outside the JSON.
     "",
     "",
     "",
-    "",
+    ""
   ],
   "future": [
     "",
@@ -95,16 +101,16 @@ Do not add text outside the JSON.
     "",
     "",
     "",
-    "",
+    ""
   ],
-  "vocab": [
+  "error_correction": [
     "",
     "",
     "",
     "",
     "",
     "",
-    "",
+    ""
   ]
 }}
 

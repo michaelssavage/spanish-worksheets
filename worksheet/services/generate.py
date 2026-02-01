@@ -125,7 +125,7 @@ def generate_worksheet_for(user):
         logger.error("JSON invalid after repair attempt")
         return None
 
-    required_keys = {"past", "present", "future", "vocab"}
+    required_keys = {"past", "present", "future", "error_correction"}
     if set(parsed.keys()) != required_keys:
         logger.error(
             "Invalid worksheet structure. Expected %s, got %s",
@@ -145,7 +145,7 @@ def generate_worksheet_for(user):
         user=user,
         content_hash=h,
         content=content,
-        topics=["past", "present", "future", "vocab"],
+        topics=["past", "present", "future", "error_correction"],
         themes=themes,
     )
 
