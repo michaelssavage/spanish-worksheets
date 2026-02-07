@@ -56,7 +56,15 @@ INSTALLED_APPS = [
 RQ_QUEUES = {
     "default": {
         "URL": REDIS_URL,
-        "DEFAULT_TIMEOUT": 600,  # allow long LLM calls
+        "DEFAULT_TIMEOUT": 600,
+        "CONNECTION_KWARGS": {
+            "ssl_cert_reqs": None,
+            "health_check_interval": 30,
+            "socket_keepalive": True,
+            "socket_connect_timeout": 10,
+            "socket_timeout": 30,
+            "retry_on_timeout": True,
+        },
     }
 }
 
