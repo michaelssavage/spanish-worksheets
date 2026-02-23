@@ -12,9 +12,16 @@ jobs:
     steps:
       - name: Wake Railway service
         run: |
-          echo "Waking service via root endpoint..."
-          curl --silent "${{ secrets.API_BASE_URL }}/" || true
-          sleep 8
+          echo "Waiting for service to be ready..."
+          for i in $(seq 1 24); do
+            STATUS=$(curl --silent -o /dev/null -w "%{http_code}" "${{ secrets.API_BASE_URL }}/")
+            if [ "$STATUS" -eq 200 ] || [ "$STATUS" -eq 401 ] || [ "$STATUS" -eq 403 ]; then
+              echo "Service is up (HTTP $STATUS)"
+              break
+            fi
+            echo "Attempt $i: got $STATUS, waiting..."
+            sleep 5
+          done
 
       - name: Request token with retries
         id: get_token
