@@ -8,7 +8,7 @@ from decouple import config
 import dj_database_url
 
 DEEPSEEK_API_KEY = config("DEEPSEEK_API_KEY")
-REDIS_URL = config("UPSTASH_REDIS_URL")
+REDIS_URL = config("REDIS_URL")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -51,14 +51,6 @@ RQ_QUEUES = {
     "default": {
         "URL": REDIS_URL,
         "DEFAULT_TIMEOUT": 600,
-        "CONNECTION_KWARGS": {
-            "ssl_cert_reqs": None,
-            "health_check_interval": 30,
-            "socket_keepalive": True,
-            "socket_connect_timeout": 10,
-            "socket_timeout": 30,
-            "retry_on_timeout": True,
-        },
     }
 }
 
