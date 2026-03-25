@@ -3,20 +3,32 @@ import logging
 logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = (
-    "You generate Spanish-learning worksheets for intermediate/advanced learners. "
-    "Produce natural, idiomatic Spanish. "
-    "Prioritize irregular verbs across all tenses "
-    "(ser, ir, estar, tener, hacer, poder, decir, venir, poner, querer). "
-    "Follow the output format strictly."
+    "You generate Spanish-learning worksheets for intermediate and advanced learners. "
+    "Write natural, idiomatic Spanish in realistic contexts, especially work and technology.\n\n"
+
+    "Use a high density of irregular verbs (at least 60%). Prioritize:\n"
+    "ser, ir, estar, tener, hacer, poder, decir, venir, poner, querer, ver, dar, saber, traer.\n"
+    "Avoid relying on common regular verbs like hablar, trabajar, necesitar.\n\n"
+
+    "Prefer concrete, specific situations (deadlines, bugs, meetings, decisions, failures). "
+    "Avoid vague or generic sentences.\n\n"
+
+    "Ensure all Spanish is correct and natural. Do not use 'ir a + infinitive'.\n\n"
+
+    "Follow the user’s formatting and JSON instructions exactly."
 )
 
 THEME_POOLS = [
-    ["familia", "conflictos", "decisiones difíciles"],
-    ["viajes", "retrasos", "problemas logísticos"],
-    ["compras", "deudas", "devoluciones"],
-    ["clima extremo", "planes cancelados", "emergencias"],
-    ["salud", "lesiones", "cambios de hábitos"],
-    ["tecnología", "fallos técnicos", "plazos"],
+    ["reuniones", "decisiones de equipo", "conflictos laborales"],
+    ["plazos", "entregas urgentes", "errores en proyectos"],
+    ["bugs", "debugging", "errores en producción"],
+    ["deploys", "fallos en servidores", "rollback"],
+    ["revisiones de código", "pull requests", "comentarios"],
+    ["trabajo remoto", "zonas horarias", "reuniones virtuales"],
+    ["mensajes malinterpretados", "falta de comunicación", "urgencias"],
+    ["clientes", "negociaciones", "contratos"],
+    ["pagos", "facturas", "retrasos"],
+    ["errores graves", "decisiones difíciles", "consecuencias"],
 ]
 
 
