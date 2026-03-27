@@ -2,7 +2,8 @@ from django.urls import path
 from .views import (
     GenerateLLMContentView,
     GenerateWorksheetEmailView,
-    GenerateWorksheetView,
+    GenerateAndSendWorksheetView,
+    LatestWorksheetView,
     WorksheetJobStatusView,
 )
 
@@ -12,7 +13,7 @@ urlpatterns = [
     ),
     path(
         "generate-worksheet/",
-        GenerateWorksheetView.as_view(),
+        GenerateAndSendWorksheetView.as_view(),
         name="generate-worksheet",
     ),
     path(
@@ -20,6 +21,7 @@ urlpatterns = [
         GenerateWorksheetEmailView.as_view(),
         name="generate-worksheet-email",
     ),
+    path("latest/", LatestWorksheetView.as_view(), name="latest-worksheet"),
     path(
         "worksheet-job-status/<str:job_id>/",
         WorksheetJobStatusView.as_view(),

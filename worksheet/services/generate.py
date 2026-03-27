@@ -8,6 +8,7 @@ import json
 import re
 
 from worksheet.services.topic_rotator import get_and_increment_topics
+from worksheet.services.exercise_items import validate_worksheet_exercises
 
 logger = logging.getLogger(__name__)
 
@@ -95,14 +96,15 @@ def fix_json_structure_once(broken_content: str) -> str | None:
     return extract_json_from_response(repaired)
 
 
-def generate_worksheet_for(user):
+def generate_worksheet_for(user, themes=None):
     logger.info(
         "Starting worksheet generation for user: %s (ID: %s)",
         user.email,
         user.id,
     )
 
-    themes = get_and_increment_topics()
+    if themes is None:
+        themes = get_and_increment_topics()
     payload = build_payload(themes)
 
     logger.info("Calling LLM to generate worksheet content")
@@ -125,12 +127,10 @@ def generate_worksheet_for(user):
         logger.error("JSON invalid after repair attempt")
         return None
 
-    required_keys = {"past", "present", "future", "error_correction"}
-    if set(parsed.keys()) != required_keys:
+    if not validate_worksheet_exercises(parsed):
         logger.error(
-            "Invalid worksheet structure. Expected %s, got %s",
-            required_keys,
-            set(parsed.keys()),
+            "Invalid worksheet structure. Expected four sections (past, present, future, translation), "
+            'each with exactly 7 objects {"prompt": "...", "answer": "..."}.'
         )
         return None
 
@@ -145,7 +145,7 @@ def generate_worksheet_for(user):
         user=user,
         content_hash=h,
         content=content,
-        topics=["past", "present", "future", "error_correction"],
+        topics=["past", "present", "future", "translation"],
         themes=themes,
     )
 

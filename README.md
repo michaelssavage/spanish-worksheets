@@ -52,8 +52,8 @@ response:
       "Mañana mi madre ________ (preparar) el almuerzo temprano", 
       ......
     ],  
-    "error_correction": [
-      "Mi tío prefiere el pescado a la carne en sus comidas", 
+    "translation": [
+      "Yesterday we discovered the issue. (usar: descubrir)",
       ....
     ]
   }

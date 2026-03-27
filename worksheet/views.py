@@ -7,11 +7,10 @@ from worksheet.serializers import (
 from django_rq import enqueue, get_queue
 from rq.job import Job
 from rq.exceptions import NoSuchJobError
-from worksheet.services.generate import call_llm
+from worksheet.services.generate import generate_worksheet_for
 from worksheet.services.email import send_worksheet_email
-from worksheet.services.prompts import build_payload
-from worksheet.services.topic_rotator import get_and_increment_topics
 from worksheet.models import Worksheet
+from worksheet.services.exercise_items import parse_worksheet_content
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
@@ -21,7 +20,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-# Return the content to the user, no email is sent
+# Persists worksheet for the user; does not send email (see GenerateAndSendWorksheetView / job).
 class GenerateLLMContentView(GenericAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = GenerateLLMContentRequestSerializer
@@ -34,21 +33,28 @@ class GenerateLLMContentView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         themes = serializer.validated_data.get("themes", [])
-        if not themes:
-            logger.info("No themes provided, fetching from topic rotator")
-            themes = get_and_increment_topics()
+        themes_arg = themes if themes else None
 
-        payload = build_payload(themes)
-        content = call_llm(payload)
+        content = generate_worksheet_for(request.user, themes=themes_arg)
+
+        if content is None:
+            logger.warning(
+                "Worksheet generation failed or duplicate for %s", request.user.email
+            )
+            return Response(
+                {"error": "Worksheet generation failed"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
 
         logger.info(
-            f"LLM content generated successfully (length: {len(content)} chars)"
+            "Worksheet saved (length: %s chars), no email sent",
+            len(content),
         )
 
         return Response({"content": content})
 
 
-class GenerateWorksheetView(GenericAPIView):
+class GenerateAndSendWorksheetView(GenericAPIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -119,3 +125,41 @@ class GenerateWorksheetEmailView(GenericAPIView):
             )
 
         return Response({"content": worksheet.content})
+
+
+class LatestWorksheetView(GenericAPIView):
+    """Return the authenticated user's most recently saved worksheet (including answers)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        worksheet = (
+            Worksheet.objects.filter(user=request.user).order_by("-created_at").first()
+        )
+        if not worksheet or not worksheet.content:
+            return Response(
+                {"error": "No worksheet available"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        parsed = parse_worksheet_content(worksheet.content)
+        if parsed is None:
+            logger.error(
+                "Stored worksheet %s for %s is not valid JSON",
+                worksheet.id,
+                request.user.email,
+            )
+            return Response(
+                {"error": "Worksheet content is invalid"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        return Response(
+            {
+                "id": worksheet.id,
+                "created_at": worksheet.created_at,
+                "themes": worksheet.themes,
+                "topics": worksheet.topics,
+                "content": parsed,
+            }
+        )

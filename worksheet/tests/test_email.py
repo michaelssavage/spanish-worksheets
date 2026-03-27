@@ -77,7 +77,7 @@ class FormatWorksheetHtmlTest(TestCase):
                 "past": ["Ayer fui al parque.", "Comí pizza."],
                 "present": ["Voy a la escuela.", "Estudio español."],
                 "future": ["Mañana viajaré.", "Compraré un coche."],
-                "error_correction": ["palabra", "frase"],
+                "translation": ["palabra", "frase"],
             }
         )
         result = format_worksheet_html(content)
@@ -86,7 +86,7 @@ class FormatWorksheetHtmlTest(TestCase):
         self.assertIn("Past Tense", result)
         self.assertIn("Present Tense", result)
         self.assertIn("Future Tense", result)
-        self.assertIn("Vocabulary Expansion", result)
+        self.assertIn("Translation", result)
         self.assertIn("Ayer fui al parque.", result)
         self.assertIn("Voy a la escuela.", result)
 
@@ -96,7 +96,7 @@ class FormatWorksheetHtmlTest(TestCase):
             "past": ["Sentence 1"],
             "present": ["Sentence 2"],
             "future": ["Sentence 3"],
-            "error_correction": ["word"],
+            "translation": ["word"],
         }
         result = format_worksheet_html(content)
 
@@ -125,7 +125,7 @@ class FormatWorksheetHtmlTest(TestCase):
             "past": '"Sentence 1", "Sentence 2"',  # String that should be split
             "present": ["Normal list"],
             "future": "Single sentence., Another sentence.",
-            "error_correction": ["word"],
+            "translation": ["word"],
         }
         result = format_worksheet_html(content)
 
@@ -140,7 +140,7 @@ class FormatWorksheetHtmlTest(TestCase):
             "past": ["<script>alert('xss')</script>", "Normal & safe"],
             "present": ["<img src=x onerror=alert(1)>"],
             "future": ["'quotes' & \"more quotes\""],
-            "error_correction": ["<b>bold</b>"],
+            "translation": ["<b>bold</b>"],
         }
         result = format_worksheet_html(content)
 
@@ -210,7 +210,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Ayer fui al parque."],
             "present": ["Voy a la escuela."],
             "future": ["Mañana viajaré."],
-            "error_correction": ["palabra"],
+            "translation": ["palabra"],
         }
 
         # Execute
@@ -226,8 +226,7 @@ class SendWorksheetEmailTest(TestCase):
         email_data = call_args[1]["data"]
         self.assertEqual(email_data["from"], "noreply@test.com")
         self.assertEqual(email_data["subject"], "Your Spanish Worksheet")
-        # Note: user.email_recipients only includes additional recipients, not user's own email
-        self.assertEqual(email_data["to"], [])
+        self.assertEqual(email_data["to"], [self.user.email])
         self.assertIn("text", email_data)
         self.assertIn("html", email_data)
 
@@ -252,7 +251,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Test"],
             "present": ["Test"],
             "future": ["Test"],
-            "error_correction": ["Test"],
+            "translation": ["Test"],
         }
         send_worksheet_email(self.user, content)
 
@@ -261,10 +260,10 @@ class SendWorksheetEmailTest(TestCase):
         email_data = call_args[1]["data"]
         recipients = email_data["to"]
 
-        # Should include only additional recipients (not user's own email)
+        self.assertIn(self.user.email, recipients)
         self.assertIn("recipient1@example.com", recipients)
         self.assertIn("recipient2@example.com", recipients)
-        self.assertEqual(len(recipients), 2)
+        self.assertEqual(len(recipients), 3)
 
     @override_settings(
         MAILGUN_API_KEY="",
@@ -278,7 +277,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Test"],
             "present": ["Test"],
             "future": ["Test"],
-            "error_correction": ["Test"],
+            "translation": ["Test"],
         }
 
         with self.assertRaises(ValueError) as context:
@@ -298,7 +297,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Test"],
             "present": ["Test"],
             "future": ["Test"],
-            "error_correction": ["Test"],
+            "translation": ["Test"],
         }
 
         with self.assertRaises(ValueError) as context:
@@ -329,7 +328,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Test"],
             "present": ["Test"],
             "future": ["Test"],
-            "error_correction": ["Test"],
+            "translation": ["Test"],
         }
 
         with self.assertRaises(requests.exceptions.HTTPError):
@@ -353,7 +352,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Test"],
             "present": ["Test"],
             "future": ["Test"],
-            "error_correction": ["Test"],
+            "translation": ["Test"],
         }
 
         with self.assertRaises(requests.exceptions.Timeout):
@@ -376,7 +375,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Ayer fui al parque.", "Comí pizza."],
             "present": ["Voy a la escuela."],
             "future": ["Mañana viajaré."],
-            "error_correction": ["palabra", "frase"],
+            "translation": ["palabra", "frase"],
         }
         send_worksheet_email(self.user, content)
 
@@ -387,7 +386,7 @@ class SendWorksheetEmailTest(TestCase):
         self.assertIn("El pasado:", plain_text)
         self.assertIn("El presente:", plain_text)
         self.assertIn("El futuro:", plain_text)
-        self.assertIn("Ampliación de vocabulario:", plain_text)
+        self.assertIn("Traducción:", plain_text)
         self.assertIn("Ayer fui al parque.", plain_text)
         self.assertIn("Comí pizza.", plain_text)
 
@@ -409,7 +408,7 @@ class SendWorksheetEmailTest(TestCase):
                 "past": ["Test past"],
                 "present": ["Test present"],
                 "future": ["Test future"],
-                "error_correction": ["Test vocab"],
+                "translation": ["Test vocab"],
             }
         )
         send_worksheet_email(self.user, content)
@@ -437,7 +436,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Test"],
             "present": ["Test"],
             "future": ["Test"],
-            "error_correction": ["Test"],
+            "translation": ["Test"],
         }
         send_worksheet_email(self.user, content)
 

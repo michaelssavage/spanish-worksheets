@@ -1,3 +1,4 @@
+# flake8: noqa
 import logging
 
 logger = logging.getLogger(__name__)
@@ -5,16 +6,16 @@ logger = logging.getLogger(__name__)
 SYSTEM_PROMPT = (
     "You generate Spanish-learning worksheets for intermediate and advanced learners. "
     "Write natural, idiomatic Spanish in realistic contexts, especially work and technology.\n\n"
-
     "Use a high density of irregular verbs (at least 60%). Prioritize:\n"
     "ser, ir, estar, tener, hacer, poder, decir, venir, poner, querer, ver, dar, saber, traer.\n"
     "Avoid relying on common regular verbs like hablar, trabajar, necesitar.\n\n"
-
     "Prefer concrete, specific situations (deadlines, bugs, meetings, decisions, failures). "
     "Avoid vague or generic sentences.\n\n"
-
     "Ensure all Spanish is correct and natural. Do not use 'ir a + infinitive'.\n\n"
-
+    'Every exercise is a JSON object with exactly two string fields: "prompt" (what the learner sees) '
+    'and "answer". For exercises with a blank (___), "answer" is ONLY the correctly conjugated verb '
+    "(or verb phrase for compound tenses, e.g. ha hecho), never the full sentence. For translation "
+    'exercises, "answer" is the full correct Spanish sentence. Never omit either field.\n\n'
     "Follow the user’s formatting and JSON instructions exactly."
 )
 
@@ -47,41 +48,46 @@ Requirements:
 
 Sections:
 
-Past tenses (7 sentences):
+Past tenses (7 exercises as JSON objects):
 - Pretérito indefinido
 - Pretérito imperfecto
 - Pretérito perfecto
 - Pluscuamperfecto
-- Each sentence MUST contain exactly ONE blank written as: ___ (infinitive)
+- Each \"prompt\" MUST contain exactly ONE blank written as: ___ (infinitive)
 - The blank replaces a verb that should be correctly conjugated in the appropriate past tense.
-- No sentence may contain more than one blank.
+- No prompt may contain more than one blank.
+- Each \"answer\" is ONLY the correctly conjugated verb (or auxiliary + participle if the tense requires it). Do not repeat the rest of the sentence.
 
-Present tenses (7 sentences):
+Present tenses (7 exercises as JSON objects):
 - Presente de indicativo
 - Presente perfecto
 - Presente progresivo
-- Each sentence MUST contain exactly ONE blank written as: ___ (infinitive)
+- Each \"prompt\" MUST contain exactly ONE blank written as: ___ (infinitive)
 - The blank replaces a verb that should be correctly conjugated in the appropriate present tense.
-- No sentence may contain more than one blank.
+- Each \"answer\" is ONLY the correctly conjugated verb (or auxiliary + participle if required). Do not repeat the rest of the sentence.
 
-Future tenses (7 sentences):
+Future tenses (7 exercises as JSON objects):
 - Futuro simple
 - Condicional simple
-- Each sentence MUST contain exactly ONE blank written as: ___ (infinitive)
-- The blank replaces a verb that should be correctly conjugated in the appropriate future or conditional tense.
-- No sentence may contain more than one blank.
+- Each \"prompt\" MUST contain exactly ONE blank written as: ___ (infinitive)
+- Each \"answer\" is ONLY the correctly conjugated verb (or auxiliary + participle if required). Do not repeat the rest of the sentence.
 
-Error correction (7 sentences):
-- Do NOT use blanks.
-- Do NOT use parentheses.
-- Each sentence must be fully written.
-- Each sentence must contain exactly ONE incorrect verb form.
-- The incorrect verb must be a real Spanish verb form, but wrong for the context
-  (wrong tense or wrong irregular conjugation).
-- All other verbs and structures in the sentence must be correct and natural.
-- Write only the sentence containing the error.
-- Do NOT include corrections, hints, explanations, or notes.
-- If any sentence in this section contains "___" or parentheses, the output is invalid.
+Translation — English → Spanish (7 exercises as JSON objects):
+- Each item forces production (full translation), not recognition.
+- Keep a one-verb focus: the learner’s main challenge is one target verb or one tense choice.
+- When specifying a verb, prefer irregular verbs (ser, ir, estar, tener, hacer, poder, decir,
+  venir, poner, querer, ver, dar, saber, traer, etc.).
+- \"prompt\": one string containing (1) a complete sentence in English, then (2) exactly ONE constraint
+  in Spanish in parentheses.
+- The constraint must be exactly ONE of:
+  a) A required verb in infinitive: (usar: infinitivo) e.g. (usar: poner)
+  b) A required tense: (usar: nombre del tiempo) e.g. (usar: pretérito indefinido)
+- \"answer\": the full correct Spanish translation of the English sentence, obeying the constraint.
+- Do NOT put the Spanish translation in \"prompt\"; it belongs only in \"answer\".
+- Do NOT include more than one constraint per item (no second verb hint, no extra tenses).
+- Prompts must describe realistic work or technology situations.
+- Keep prompts concise but require tense decisions (timing, cause, sequence).
+- Do NOT use blanks (___) in translation prompts.
 
 Fill in the following JSON exactly.
 Do not add, remove, or rename keys.
@@ -89,40 +95,40 @@ Do not add text outside the JSON.
 
 {{
   "past": [
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    ""
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}}
   ],
   "present": [
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    ""
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}}
   ],
   "future": [
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    ""
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}}
   ],
-  "error_correction": [
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    ""
+  "translation": [
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}},
+    {{"prompt": "", "answer": ""}}
   ]
 }}
 

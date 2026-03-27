@@ -5,6 +5,8 @@ import requests
 from django.conf import settings
 from django.utils.html import escape
 
+from worksheet.services.exercise_items import exercise_prompt_for_display
+
 logger = logging.getLogger(__name__)
 
 
@@ -50,7 +52,7 @@ def format_worksheet_html(content_json, theme=None):
             ("Past Tense", normalize_to_list(data.get("past", []))),
             ("Present Tense", normalize_to_list(data.get("present", []))),
             ("Future Tense", normalize_to_list(data.get("future", []))),
-            ("Error Correction", normalize_to_list(data.get("error_correction", []))),
+            ("Translation", normalize_to_list(data.get("translation", []))),
         ]
 
         # Randomize the order of sections
@@ -82,7 +84,7 @@ def format_worksheet_html(content_json, theme=None):
 
             for i, sentence in enumerate(sentences, 1):
                 # Escape HTML special characters to prevent XSS
-                escaped_sentence = escape(str(sentence))
+                escaped_sentence = escape(exercise_prompt_for_display(sentence))
                 # Include explicit number in text for Notion compatibility
                 html_content += (
                     f'                <p style="margin: 0 0 10px 0; white-space: pre-wrap;">'
@@ -140,18 +142,16 @@ def send_worksheet_email(user, content, theme=None):
         plain_text = "Your Spanish Worksheet\n\n"
         plain_text += "1. El pasado:\n"
         for i, sentence in enumerate(normalize_to_list(data.get("past", [])), 1):
-            plain_text += f"   {i}. {sentence}\n"
+            plain_text += f"   {i}. {exercise_prompt_for_display(sentence)}\n"
         plain_text += "\n2. El presente:\n"
         for i, sentence in enumerate(normalize_to_list(data.get("present", [])), 1):
-            plain_text += f"   {i}. {sentence}\n"
+            plain_text += f"   {i}. {exercise_prompt_for_display(sentence)}\n"
         plain_text += "\n3. El futuro:\n"
         for i, sentence in enumerate(normalize_to_list(data.get("future", [])), 1):
-            plain_text += f"   {i}. {sentence}\n"
-        plain_text += "\n4. Ampliación de vocabulario:\n"
-        for i, sentence in enumerate(
-            normalize_to_list(data.get("error_correction", [])), 1
-        ):
-            plain_text += f"   {i}. {sentence}\n"
+            plain_text += f"   {i}. {exercise_prompt_for_display(sentence)}\n"
+        plain_text += "\n4. Traducción:\n"
+        for i, sentence in enumerate(normalize_to_list(data.get("translation", [])), 1):
+            plain_text += f"   {i}. {exercise_prompt_for_display(sentence)}\n"
     except (json.JSONDecodeError, KeyError, AttributeError):
         plain_text = str(content)
 
