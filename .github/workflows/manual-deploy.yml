@@ -15,7 +15,7 @@ on:
           - upload-code
           - redeploy-only
       deploy_worker:
-        description: "Also deploy RAILWAY_WORKER_SERVICE_ID (set secret first; leave false for web-only)"
+        description: "Also deploy RAILWAY_WORKER_SERVICE_ID"
         required: true
         type: boolean
         default: false
