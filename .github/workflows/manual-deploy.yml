@@ -1,0 +1,78 @@
+name: Manual deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      git_ref:
+        description: "Git ref to deploy (branch, tag, or SHA); only used for upload-code"
+        required: true
+        default: main
+      strategy:
+        description: "Upload code from this ref (railway up), or redeploy last image (railway redeploy)"
+        required: true
+        type: choice
+        options:
+          - upload-code
+          - redeploy-only
+      deploy_worker:
+        description: "Also deploy RAILWAY_WORKER_SERVICE_ID (set secret first; leave false for web-only)"
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  deploy-web:
+    name: Web service
+    runs-on: ubuntu-latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - name: Checkout (upload-code only)
+        if: inputs.strategy == 'upload-code'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Railway CLI
+        run: npm i -g @railway/cli
+
+      - name: Upload and deploy
+        if: inputs.strategy == 'upload-code'
+        run: railway up --service="${{ secrets.RAILWAY_SERVICE_ID }}" --ci
+
+      - name: Redeploy latest
+        if: inputs.strategy == 'redeploy-only'
+        run: railway redeploy --service="${{ secrets.RAILWAY_SERVICE_ID }}" --yes
+
+  deploy-worker:
+    name: Worker service
+    needs: deploy-web
+    if: ${{ inputs.deploy_worker }}
+    runs-on: ubuntu-latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - name: Checkout (upload-code only)
+        if: inputs.strategy == 'upload-code'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Railway CLI
+        run: npm i -g @railway/cli
+
+      - name: Upload and deploy worker
+        if: inputs.strategy == 'upload-code'
+        run: railway up --service="${{ secrets.RAILWAY_WORKER_SERVICE_ID }}" --ci
+
+      - name: Redeploy worker
+        if: inputs.strategy == 'redeploy-only'
+        run: railway redeploy --service="${{ secrets.RAILWAY_WORKER_SERVICE_ID }}" --yes
