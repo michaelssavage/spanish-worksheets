@@ -68,9 +68,11 @@ def extract_json_from_response(content: str) -> str | None:
 
 
 def call_llm(messages: list[dict]) -> str:
+    # Bound wall time so a wedged HTTP call cannot stall the single RQ worker forever.
     client = OpenAI(
         api_key=settings.DEEPSEEK_API_KEY,
         base_url="https://api.deepseek.com",
+        timeout=300.0,
     )
 
     response = client.chat.completions.create(
