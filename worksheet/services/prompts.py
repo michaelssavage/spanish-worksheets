@@ -5,18 +5,16 @@ logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = (
     "You generate Spanish-learning worksheets for intermediate and advanced learners. "
-    "Write natural, idiomatic Spanish in realistic contexts, especially work and technology.\n\n"
-    "Use a high density of irregular verbs (at least 60%). Prioritize:\n"
-    "ser, ir, estar, tener, hacer, poder, decir, venir, poner, querer, ver, dar, saber, traer.\n"
-    "Avoid relying on common regular verbs like hablar, trabajar, necesitar.\n\n"
-    "Prefer concrete, specific situations (deadlines, bugs, meetings, decisions, failures). "
-    "Avoid vague or generic sentences.\n\n"
-    "Ensure all Spanish is correct and natural. Do not use 'ir a + infinitive'.\n\n"
-    'Every exercise is a JSON object with exactly two string fields: "prompt" (what the learner sees) '
-    'and "answer". For exercises with a blank (___), "answer" is ONLY the correctly conjugated verb '
-    "(or verb phrase for compound tenses, e.g. ha hecho), never the full sentence. For translation "
-    'exercises, "answer" is the full correct Spanish sentence. Never omit either field.\n\n'
-    "Follow the user’s formatting and JSON instructions exactly."
+    "Use natural, idiomatic Spanish in realistic contexts, especially work and technology.\n\n"
+    "Pedagogy: prefer concrete situations (deadlines, bugs, meetings, decisions, failures); "
+    "avoid vague sentences. Avoid leaning on common regular verbs like hablar, trabajar, necesitar. "
+    "Use many irregular verbs in conjugation sections (at least half the verbs per section).\n\n"
+    "Ensure all Spanish is correct and natural. Do not use 'ir a + infinitive' in any form.\n\n"
+    'Output: each exercise is a JSON object with exactly two string fields, "prompt" and "answer". '
+    'Never omit either field. For translation items, "answer" is the full Spanish sentence. '
+    'For conjugation items (blanks), "answer" is ONLY the correctly conjugated verb or auxiliary + '
+    "participle when the tense requires it — never the full sentence.\n\n"
+    "Follow the user's JSON schema and section instructions exactly. Output valid JSON only when asked."
 )
 
 THEME_POOLS = [
@@ -40,54 +38,35 @@ def build_user_prompt(themes: list[str]) -> str:
 Themes:
 {theme_block}
 
-Requirements:
-- Spanish only.
-- Use many irregular verbs (at least half per section).
-- Do NOT use "ir a + infinitive" in any form.
+Worksheet rules (all sections):
+- Spanish only in answers and in conjugation prompts.
 - Do NOT use obvious mistakes like "yo sabo" or "yo cabo".
 
-Sections:
+Conjugation sections — past, present, future (7 exercises each as JSON objects):
+- Shared: each \"prompt\" contains exactly ONE blank, written as: ___ (infinitive). No more, no fewer.
+- Shared: the blank replaces the verb to conjugate; each \"answer\" is ONLY that conjugated form (or auxiliary + participle if the tense requires it), not the full sentence.
 
-Past tenses (7 exercises as JSON objects):
-- Pretérito indefinido
-- Pretérito imperfecto
-- Pretérito perfecto
-- Pluscuamperfecto
-- Each \"prompt\" MUST contain exactly ONE blank written as: ___ (infinitive)
-- The blank replaces a verb that should be correctly conjugated in the appropriate past tense.
-- No prompt may contain more than one blank.
-- Each \"answer\" is ONLY the correctly conjugated verb (or auxiliary + participle if the tense requires it). Do not repeat the rest of the sentence.
+Past (distribute across the 7 items):
+- Pretérito indefinido, pretérito imperfecto, pretérito perfecto, pluscuamperfecto
 
-Present tenses (7 exercises as JSON objects):
-- Presente de indicativo
-- Presente perfecto
-- Presente progresivo
-- Each \"prompt\" MUST contain exactly ONE blank written as: ___ (infinitive)
-- The blank replaces a verb that should be correctly conjugated in the appropriate present tense.
-- Each \"answer\" is ONLY the correctly conjugated verb (or auxiliary + participle if required). Do not repeat the rest of the sentence.
+Present (distribute across the 7 items):
+- Presente de indicativo, presente perfecto, presente progresivo
 
-Future tenses (7 exercises as JSON objects):
-- Futuro simple
-- Condicional simple
-- Each \"prompt\" MUST contain exactly ONE blank written as: ___ (infinitive)
-- Each \"answer\" is ONLY the correctly conjugated verb (or auxiliary + participle if required). Do not repeat the rest of the sentence.
+Future (distribute across the 7 items):
+- Futuro simple, condicional simple
 
 Translation — English → Spanish (7 exercises as JSON objects):
-- Each item forces production (full translation), not recognition.
-- Keep a one-verb focus: the learner’s main challenge is one target verb or one tense choice.
+- Each item forces production (full translation), not recognition; one main verb or tense choice.
 - When specifying a verb, prefer irregular verbs (ser, ir, estar, tener, hacer, poder, decir,
   venir, poner, querer, ver, dar, saber, traer, etc.).
-- \"prompt\": one string containing (1) a complete sentence in English, then (2) exactly ONE constraint
+- \"prompt\": one string with (1) a complete English sentence, then (2) exactly ONE constraint
   in Spanish in parentheses.
-- The constraint must be exactly ONE of:
-  a) A required verb in infinitive: (usar: infinitivo) e.g. (usar: poner)
-  b) A required tense: (usar: nombre del tiempo) e.g. (usar: pretérito indefinido)
-- \"answer\": the full correct Spanish translation of the English sentence, obeying the constraint.
-- Do NOT put the Spanish translation in \"prompt\"; it belongs only in \"answer\".
-- Do NOT include more than one constraint per item (no second verb hint, no extra tenses).
-- Prompts must describe realistic work or technology situations.
-- Keep prompts concise but require tense decisions (timing, cause, sequence).
-- Do NOT use blanks (___) in translation prompts.
+- The constraint is exactly ONE of:
+  a) Required verb: (usar: infinitivo) e.g. (usar: poner)
+  b) Required tense: (usar: nombre del tiempo) e.g. (usar: pretérito indefinido)
+- \"answer\": the full correct Spanish translation, obeying the constraint.
+- Do NOT put the Spanish translation in \"prompt\". Do NOT use ___ in translation prompts.
+- Do NOT include more than one constraint per item.
 
 Fill in the following JSON exactly.
 Do not add, remove, or rename keys.

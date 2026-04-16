@@ -9,4 +9,8 @@ done
 echo "PostgreSQL started"
 poetry run python manage.py collectstatic --noinput
 poetry run python manage.py migrate
+
+# Start RQ worker in background — wakes up with the web service
+poetry run python manage.py rqworker default &
+
 exec gunicorn config.wsgi:application --bind 0.0.0.0:$PORT

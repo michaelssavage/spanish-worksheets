@@ -6,11 +6,20 @@ import json
 from typing import Any
 
 REQUIRED_SECTION_KEYS = frozenset({"past", "present", "future", "translation"})
+CONJUGATION_SECTION_KEYS = frozenset({"past", "present", "future"})
 ITEMS_PER_SECTION = 7
+BLANK_MARKER = "___"
+
+
+def has_exactly_one_blank(prompt: str) -> bool:
+    """True if the prompt has exactly one triple-underscore blank (___)."""
+    if not isinstance(prompt, str):
+        return False
+    return prompt.count(BLANK_MARKER) == 1
 
 
 def exercise_prompt_for_display(item: Any) -> str:
-    """Text shown to the learner (email, HTML). Supports legacy string-only items."""
+    """Learner-facing text (email, HTML). Supports legacy string-only items."""
     if isinstance(item, str):
         return item
     if isinstance(item, dict):
@@ -21,7 +30,7 @@ def exercise_prompt_for_display(item: Any) -> str:
 
 
 def validate_worksheet_exercises(data: dict[str, Any]) -> bool:
-    """True if each section has seven objects with non-empty prompt and answer strings."""
+    """True if each section has seven objects with prompt and answer set."""
     if set(data.keys()) != REQUIRED_SECTION_KEYS:
         return False
     for key in REQUIRED_SECTION_KEYS:
@@ -37,6 +46,33 @@ def validate_worksheet_exercises(data: dict[str, Any]) -> bool:
                 return False
             if not isinstance(answer, str) or not answer.strip():
                 return False
+    return True
+
+
+def validate_worksheet_blank_prompts(data: dict[str, Any]) -> bool:
+    """
+    True if past/present/future each have exactly one ___ and translation
+    has none. Call only after validate_worksheet_exercises passes.
+    """
+    for key in CONJUGATION_SECTION_KEYS:
+        section = data.get(key)
+        if not isinstance(section, list):
+            return False
+        for item in section:
+            if not isinstance(item, dict):
+                return False
+            prompt = item.get("prompt")
+            if not has_exactly_one_blank(prompt):
+                return False
+    trans = data.get("translation")
+    if not isinstance(trans, list):
+        return False
+    for item in trans:
+        if not isinstance(item, dict):
+            return False
+        prompt = item.get("prompt")
+        if not isinstance(prompt, str) or BLANK_MARKER in prompt:
+            return False
     return True
 
 

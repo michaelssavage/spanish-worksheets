@@ -8,9 +8,21 @@ import json
 import re
 
 from worksheet.services.topic_rotator import get_and_increment_topics
-from worksheet.services.exercise_items import validate_worksheet_exercises
+from worksheet.services.exercise_items import (
+    validate_worksheet_blank_prompts,
+    validate_worksheet_exercises,
+)
 
 logger = logging.getLogger(__name__)
+
+MAX_BLANK_REGENERATION_ATTEMPTS = 3
+
+BLANK_PROMPT_CORRECTION_USER = (
+    "Some prompts had wrong blanks (missing ___, multiple ___, or ___ in "
+    "translation). Fix strictly: each past/present/future prompt must "
+    "contain exactly one '___'; translation prompts must contain none. "
+    "Return the full worksheet JSON again with the same keys and shape."
+)
 
 
 def extract_json_from_response(content: str) -> str | None:
@@ -105,33 +117,63 @@ def generate_worksheet_for(user, themes=None):
 
     if themes is None:
         themes = get_and_increment_topics()
-    payload = build_payload(themes)
+    messages = build_payload(themes)
 
-    logger.info("Calling LLM to generate worksheet content")
-    raw_content = call_llm(payload)
+    content: str | None = None
 
-    content = extract_json_from_response(raw_content)
-
-    # One repair attempt if extraction failed
-    if content is None:
-        content = fix_json_structure_once(raw_content)
-
-    if content is None:
-        logger.error("Worksheet generation failed: JSON could not be repaired")
-        return None
-
-    # Final hard validation
-    try:
-        parsed = json.loads(content)
-    except json.JSONDecodeError:
-        logger.error("JSON invalid after repair attempt")
-        return None
-
-    if not validate_worksheet_exercises(parsed):
-        logger.error(
-            "Invalid worksheet structure. Expected four sections (past, present, future, translation), "
-            'each with exactly 7 objects {"prompt": "...", "answer": "..."}.'
+    for attempt in range(MAX_BLANK_REGENERATION_ATTEMPTS):
+        logger.info(
+            "Calling LLM to generate worksheet content (attempt %s)",
+            attempt + 1,
         )
+        raw_content = call_llm(messages)
+
+        candidate = extract_json_from_response(raw_content)
+
+        if candidate is None:
+            candidate = fix_json_structure_once(raw_content)
+
+        if candidate is None:
+            logger.error(
+                "Worksheet generation failed: JSON could not be repaired",
+            )
+            return None
+
+        try:
+            parsed = json.loads(candidate)
+        except json.JSONDecodeError:
+            logger.error("JSON invalid after repair attempt")
+            return None
+
+        if not validate_worksheet_exercises(parsed):
+            logger.error(
+                "Invalid worksheet structure. Expected four sections "
+                "(past, present, future, translation), each with exactly 7 "
+                'objects {"prompt": "...", "answer": "..."}.',
+            )
+            return None
+
+        if validate_worksheet_blank_prompts(parsed):
+            content = candidate
+            break
+
+        logger.warning(
+            "Worksheet blank validation failed (attempt %s/%s)",
+            attempt + 1,
+            MAX_BLANK_REGENERATION_ATTEMPTS,
+        )
+        if attempt + 1 >= MAX_BLANK_REGENERATION_ATTEMPTS:
+            logger.error(
+                "Worksheet blank validation failed after all attempts",
+            )
+            return None
+
+        messages = messages + [
+            {"role": "assistant", "content": candidate},
+            {"role": "user", "content": BLANK_PROMPT_CORRECTION_USER},
+        ]
+
+    if content is None:
         return None
 
     h = hashlib.sha256(content.encode("utf-8")).hexdigest()

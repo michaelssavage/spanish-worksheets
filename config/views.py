@@ -1,4 +1,28 @@
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
+import django_rq
+from rq import Worker
+
+
+def health(request):
+    try:
+        conn = django_rq.get_connection("default")
+        conn.ping()
+        redis_ok = True
+    except Exception:
+        redis_ok = False
+
+    workers = []
+    if redis_ok:
+        try:
+            workers = Worker.all(connection=conn)
+        except Exception:
+            pass
+
+    all_ok = redis_ok and len(workers) > 0
+    return JsonResponse(
+        {"redis": "ok" if redis_ok else "error", "workers": len(workers)},
+        status=200 if all_ok else 503,
+    )
 
 
 def home(request):

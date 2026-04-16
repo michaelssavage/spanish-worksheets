@@ -4,11 +4,12 @@ from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularSwaggerView,
 )
-from .views import home
+from .views import home, health
 from users.views import TokenObtainView
 
 urlpatterns = [
     path("", home, name="home"),
+    path("health/", health, name="health"),
     path("admin/", admin.site.urls),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(

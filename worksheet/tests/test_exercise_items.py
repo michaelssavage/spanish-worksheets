@@ -2,7 +2,9 @@ from django.test import TestCase
 
 from worksheet.services.exercise_items import (
     exercise_prompt_for_display,
+    has_exactly_one_blank,
     parse_worksheet_content,
+    validate_worksheet_blank_prompts,
     validate_worksheet_exercises,
 )
 
@@ -56,3 +58,28 @@ class ExerciseItemsTest(TestCase):
         raw = json.dumps(data)
         self.assertEqual(parse_worksheet_content(raw), data)
         self.assertEqual(parse_worksheet_content(data), data)
+
+    def test_has_exactly_one_blank(self):
+        self.assertTrue(has_exactly_one_blank("Foo ___ (hacer) bar"))
+        self.assertFalse(has_exactly_one_blank("No blank here"))
+        self.assertFalse(has_exactly_one_blank("Two ___ (a) ___ (b)"))
+
+    def test_validate_worksheet_blank_prompts(self):
+        d = _valid_data()
+        self.assertFalse(validate_worksheet_blank_prompts(d))
+        d["past"] = [
+            {"prompt": f"p{i} ___ (ver)", "answer": f"a{i}"} for i in range(7)
+        ]
+        d["present"] = [
+            {"prompt": f"p{i} ___ (ver)", "answer": f"a{i}"} for i in range(7)
+        ]
+        d["future"] = [
+            {"prompt": f"p{i} ___ (ver)", "answer": f"a{i}"} for i in range(7)
+        ]
+        d["translation"] = [
+            {"prompt": f"En {i}. (usar: infinitivo)", "answer": f"a{i}"}
+            for i in range(7)
+        ]
+        self.assertTrue(validate_worksheet_blank_prompts(d))
+        d["past"][0]["prompt"] = "a ___ b ___"
+        self.assertFalse(validate_worksheet_blank_prompts(d))

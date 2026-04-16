@@ -23,6 +23,23 @@ jobs:
             sleep 5
           done
 
+      - name: Wait for Redis and RQ worker
+        run: |
+          echo "Waiting for Redis connection and RQ worker..."
+          for i in $(seq 1 24); do
+            STATUS=$(curl --silent -o /dev/null -w "%{http_code}" "${{ secrets.API_BASE_URL }}/health/")
+            if [ "$STATUS" -eq 200 ]; then
+              echo "Redis and worker are ready (HTTP $STATUS)"
+              break
+            fi
+            echo "Attempt $i: health returned $STATUS, waiting..."
+            sleep 10
+          done
+          if [ "$STATUS" -ne 200 ]; then
+            echo "Redis or RQ worker failed to become ready."
+            exit 1
+          fi
+
       - name: Request token with retries
         id: get_token
         run: |
