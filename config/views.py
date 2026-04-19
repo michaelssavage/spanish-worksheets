@@ -1,28 +1,28 @@
-from django.http import HttpResponse, JsonResponse
 import django_rq
+from django.http import HttpResponse, JsonResponse
 from rq import Worker
 
 
 def health(request):
+    """200 only when Redis is up and at least one RQ worker listens on ``default``."""
     try:
         conn = django_rq.get_connection("default")
         conn.ping()
-        redis_ok = True
     except Exception:
-        redis_ok = False
+        return JsonResponse({"redis": "error", "workers_on_default": 0}, status=503)
 
-    workers = []
-    if redis_ok:
-        try:
-            workers = Worker.all(connection=conn)
-        except Exception:
-            pass
+    try:
+        workers = Worker.all(connection=conn)
+    except Exception:
+        return JsonResponse({"redis": "ok", "workers_on_default": 0}, status=503)
 
-    all_ok = redis_ok and len(workers) > 0
-    return JsonResponse(
-        {"redis": "ok" if redis_ok else "error", "workers": len(workers)},
-        status=200 if all_ok else 503,
-    )
+    on_default = [w for w in workers if "default" in w.queue_names()]
+    payload = {
+        "redis": "ok",
+        "workers_total": len(workers),
+        "workers_on_default": len(on_default),
+    }
+    return JsonResponse(payload, status=200 if on_default else 503)
 
 
 def home(request):
