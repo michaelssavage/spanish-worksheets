@@ -19,12 +19,20 @@ DEBUG = config("DEBUG", default=False, cast=bool)
 raw_hosts = config("ALLOWED_HOSTS", default="localhost,127.0.0.1")
 
 ALLOWED_HOSTS = [host.strip() for host in raw_hosts.split(",") if host.strip()]
+# Render sets RENDER_EXTERNAL_HOSTNAME on web services; append so ALLOWED_HOSTS need not be edited per deploy.
+_render_host = config("RENDER_EXTERNAL_HOSTNAME", default="")
+if _render_host and _render_host not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(_render_host)
 
 # CSRF trusted origins
 backend_url = config("BACKEND_URL", default="")
 CSRF_TRUSTED_ORIGINS = []
 if backend_url:
     CSRF_TRUSTED_ORIGINS.append(backend_url)
+else:
+    render_external_url = config("RENDER_EXTERNAL_URL", default="")
+    if render_external_url:
+        CSRF_TRUSTED_ORIGINS.append(render_external_url.rstrip("/"))
 
 
 # Application definition

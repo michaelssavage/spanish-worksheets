@@ -1,0 +1,98 @@
+# Render Blueprint: https://render.com/docs/infrastructure-as-code
+# New Blueprint: Dashboard -> New -> Blueprint -> pick this repo -> apply `render.yaml`.
+# After deploy: set GitHub secret API_BASE_URL to your web URL (https://<name>.onrender.com, no trailing slash).
+
+envVarGroups:
+  - name: worksheets-secrets
+    envVars:
+      - key: SETTINGS_SECRET_KEY
+        generateValue: true
+
+services:
+  - type: keyvalue
+    name: worksheets-redis
+    region: frankfurt
+    plan: starter
+    maxmemoryPolicy: noeviction
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: allow Render private + public Redis URL usage
+
+  - type: web
+    name: spanish-worksheets
+    runtime: python
+    region: frankfurt
+    plan: starter
+    buildCommand: poetry install --no-interaction --no-ansi && poetry run python manage.py collectstatic --noinput
+    preDeployCommand: poetry run python manage.py migrate --noinput
+    startCommand: poetry run gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+    healthCheckPath: /health/
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.5
+      - fromGroup: worksheets-secrets
+      - key: DATABASE_URL
+        fromDatabase:
+          name: worksheets-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: worksheets-redis
+          property: connectionString
+      - key: DEBUG
+        value: "False"
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: MAILGUN_API_KEY
+        sync: false
+      - key: MAILGUN_DOMAIN
+        sync: false
+      - key: MAILGUN_BASE_URL
+        value: https://api.eu.mailgun.net
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
+      - key: BACKEND_URL
+        sync: false
+
+  - type: worker
+    name: spanish-worksheets-worker
+    runtime: python
+    region: frankfurt
+    plan: starter
+    buildCommand: poetry install --no-interaction --no-ansi
+    startCommand: poetry run python manage.py rqworker default
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.5
+      - fromGroup: worksheets-secrets
+      - key: DATABASE_URL
+        fromDatabase:
+          name: worksheets-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: worksheets-redis
+          property: connectionString
+      - key: DEBUG
+        value: "False"
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: MAILGUN_API_KEY
+        sync: false
+      - key: MAILGUN_DOMAIN
+        sync: false
+      - key: MAILGUN_BASE_URL
+        value: https://api.eu.mailgun.net
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
+      - key: BACKEND_URL
+        sync: false
+
+databases:
+  - name: worksheets-db
+    databaseName: worksheets
+    user: worksheets
+    region: frankfurt
+    plan: basic-256mb

@@ -24,6 +24,10 @@ poetry run python manage.py rqworker default
 
 Use the same repo for **two** Railway services (or one web + one worker process), both with `DATABASE_URL`, `REDIS_URL`, and the same env as the web app. **Web:** `gunicorn` (or your current start command). **Worker:** `python manage.py rqworker default`. Without the worker, jobs accumulate in Redis and emails are never sent, while HTTP clients may still see `202 Accepted`.
 
+### Render
+
+Use the root [`render.yaml`](render.yaml) Blueprint (Postgres, Redis Key Value, web service, and background worker). In the Render dashboard: **New → Blueprint**, connect the repo, and fill in the `sync: false` secrets when prompted. You can skip `BACKEND_URL` unless you use a custom domain (otherwise `RENDER_EXTERNAL_URL` is used for CSRF). Point the GitHub Action secret `API_BASE_URL` at `https://<your-web-service>.onrender.com` with no trailing slash.
+
 ### creating a new subsection
 
 1. `poetry run python manage.py startapp NEW_APP`

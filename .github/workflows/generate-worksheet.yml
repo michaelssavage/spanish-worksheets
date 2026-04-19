@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Wake Railway service
+      - name: Wake web service
         run: |
           echo "Waiting for service to be ready..."
           for i in $(seq 1 24); do
