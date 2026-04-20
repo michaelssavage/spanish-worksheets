@@ -14,7 +14,7 @@ jobs:
         run: |
           echo "Waiting for service to be ready..."
           for i in $(seq 1 24); do
-            STATUS=$(curl --silent -o /dev/null -w "%{http_code}" "${{ secrets.API_BASE_URL }}/")
+            STATUS=$(curl --silent -L --max-redirs 5 -o /dev/null -w "%{http_code}" "${{ secrets.API_BASE_URL }}/")
             if [ "$STATUS" -eq 200 ] || [ "$STATUS" -eq 401 ] || [ "$STATUS" -eq 403 ]; then
               echo "Service is up (HTTP $STATUS)"
               break
@@ -28,10 +28,10 @@ jobs:
           echo "Waiting for Redis connection and RQ worker..."
           STATUS=""
           for i in $(seq 1 24); do
-            STATUS=$(curl --silent -o /dev/null -w "%{http_code}" "${{ secrets.API_BASE_URL }}/health/")
+            STATUS=$(curl --silent -L --max-redirs 5 -o /dev/null -w "%{http_code}" "${{ secrets.API_BASE_URL }}/health/")
             if [ "$STATUS" = "200" ]; then
               echo "Redis and worker are ready (HTTP $STATUS)"
-              curl --silent "${{ secrets.API_BASE_URL }}/health/"
+              curl --silent -L --max-redirs 5 "${{ secrets.API_BASE_URL }}/health/"
               echo
               break
             fi
@@ -41,7 +41,7 @@ jobs:
           if [ "$STATUS" != "200" ]; then
             echo "Redis or RQ worker failed to become ready (last HTTP: ${STATUS:-none})."
             echo "Last /health/ JSON:"
-            curl --silent "${{ secrets.API_BASE_URL }}/health/" || true
+            curl --silent -L --max-redirs 5 "${{ secrets.API_BASE_URL }}/health/" || true
             echo
             exit 1
           fi
@@ -55,7 +55,7 @@ jobs:
           for i in $(seq 1 $MAX_RETRIES); do
             echo "Attempt $i to obtain token..."
 
-            RESPONSE=$(curl --silent -X POST "${{ secrets.API_BASE_URL }}/api/token/" \
+            RESPONSE=$(curl --silent -L --max-redirs 5 -X POST "${{ secrets.API_BASE_URL }}/api/token/" \
               -H "Content-Type: application/json" \
               -d "{\"username\": \"${{ secrets.API_USERNAME }}\", \"password\": \"${{ secrets.API_PASSWORD }}\"}")
 
@@ -83,6 +83,6 @@ jobs:
             exit 1
           fi
           echo "Calling generate worksheet endpoint..."
-          curl --fail --show-error -X POST \
+          curl --fail --show-error -L --max-redirs 5 -X POST \
             "${{ secrets.API_BASE_URL }}/api/worksheet/generate-worksheet/" \
             -H "Authorization: Token $TOKEN"
