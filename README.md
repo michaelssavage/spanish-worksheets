@@ -2,7 +2,7 @@
 
 **Homework straight to your inbox.**
 
-A Django app deployed to Railway with a Github Action CRON job. The CRON runs every second day and generates Spanish homework via an LLM, and then sends an email of the homework via Mailgun's API.
+A Django app deployed to Railway with a Github Action CRON job. The CRON runs every second day and generates Spanish homework via DeepSeek LLM, and then sends an email of the homework via Mailgun's API. x
 
 ## Setup
 ### first time setup locally
