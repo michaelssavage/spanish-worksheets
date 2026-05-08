@@ -3,20 +3,32 @@ from django.test import TestCase
 from worksheet.services.exercise_items import (
     exercise_prompt_for_display,
     has_exactly_one_blank,
+    normalize_custom_exercise_answers,
     normalize_worksheet_answers,
     parse_worksheet_content,
+    validate_custom_blank_prompts,
+    validate_custom_exercises,
     validate_worksheet_blank_prompts,
     validate_worksheet_exercises,
 )
 
 
 def _valid_data():
-    sec = [{"prompt": f"p{i}", "answer": [f"a{i}"]} for i in range(7)]
+    sec = [{"prompt": f"p{i}", "answer": [f"a{i}"]} for i in range(8)]
     return {
         "past": sec,
         "present": sec,
         "future": sec,
         "translation": sec,
+    }
+
+
+def _valid_custom_data():
+    return {
+        "exercises": [
+            {"prompt": f"Yo ___ (hacer) algo {i}.", "answer": [f"hago{i}"]}
+            for i in range(8)
+        ]
     }
 
 
@@ -90,18 +102,47 @@ class ExerciseItemsTest(TestCase):
         d = _valid_data()
         self.assertFalse(validate_worksheet_blank_prompts(d))
         d["past"] = [
-            {"prompt": f"p{i} ___ (ver)", "answer": [f"a{i}"]} for i in range(7)
+            {"prompt": f"p{i} ___ (ver)", "answer": [f"a{i}"]} for i in range(8)
         ]
         d["present"] = [
-            {"prompt": f"p{i} ___ (ver)", "answer": [f"a{i}"]} for i in range(7)
+            {"prompt": f"p{i} ___ (ver)", "answer": [f"a{i}"]} for i in range(8)
         ]
         d["future"] = [
-            {"prompt": f"p{i} ___ (ver)", "answer": [f"a{i}"]} for i in range(7)
+            {"prompt": f"p{i} ___ (ver)", "answer": [f"a{i}"]} for i in range(8)
         ]
         d["translation"] = [
             {"prompt": f"En {i}. (usar: infinitivo)", "answer": [f"a{i}"]}
-            for i in range(7)
+            for i in range(8)
         ]
         self.assertTrue(validate_worksheet_blank_prompts(d))
         d["past"][0]["prompt"] = "a ___ b ___"
         self.assertFalse(validate_worksheet_blank_prompts(d))
+
+    def test_validate_custom_exercises(self):
+        self.assertTrue(validate_custom_exercises(_valid_custom_data()))
+
+    def test_validate_custom_rejects_wrong_key_set(self):
+        d = _valid_custom_data()
+        d["past"] = []
+        self.assertFalse(validate_custom_exercises(d))
+
+    def test_validate_custom_rejects_wrong_count(self):
+        d = _valid_custom_data()
+        d["exercises"] = d["exercises"][:7]
+        self.assertFalse(validate_custom_exercises(d))
+
+    def test_validate_custom_rejects_string_answer_before_normalization(self):
+        d = _valid_custom_data()
+        d["exercises"][0]["answer"] = "hago"
+        self.assertFalse(validate_custom_exercises(d))
+        normalize_custom_exercise_answers(d)
+        self.assertTrue(validate_custom_exercises(d))
+        self.assertEqual(d["exercises"][0]["answer"], ["hago"])
+
+    def test_validate_custom_blank_prompts(self):
+        d = _valid_custom_data()
+        self.assertTrue(validate_custom_blank_prompts(d))
+        d["exercises"][0]["prompt"] = "Yo hago algo."
+        self.assertFalse(validate_custom_blank_prompts(d))
+        d["exercises"][0]["prompt"] = "Yo ___ (hacer) y ___ (decir)."
+        self.assertFalse(validate_custom_blank_prompts(d))

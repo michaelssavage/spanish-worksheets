@@ -1,5 +1,7 @@
 from worksheet.jobs import generate_worksheet_job
 from worksheet.serializers import (
+    GenerateCustomWorksheetRequestSerializer,
+    GenerateCustomWorksheetResponseSerializer,
     GenerateLLMContentRequestSerializer,
     GenerateLLMContentResponseSerializer,
     GenerateWorksheetResponseSerializer,
@@ -7,7 +9,10 @@ from worksheet.serializers import (
 from django_rq import enqueue, get_queue
 from rq.job import Job
 from rq.exceptions import NoSuchJobError
-from worksheet.services.generate import generate_worksheet_for
+from worksheet.services.generate import (
+    generate_custom_exercises,
+    generate_worksheet_for,
+)
 from worksheet.services.email import send_worksheet_email
 from worksheet.models import Worksheet
 from worksheet.services.exercise_items import parse_worksheet_content
@@ -18,6 +23,32 @@ from rest_framework import status
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class GenerateCustomWorksheetView(GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = GenerateCustomWorksheetRequestSerializer
+    response_serializer = GenerateCustomWorksheetResponseSerializer
+
+    def post(self, request):
+        logger.info("generate_custom_worksheet called by user: %s", request.user.email)
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        request_text = serializer.validated_data["request"]
+        content = generate_custom_exercises(request_text)
+
+        if content is None:
+            logger.warning(
+                "Custom worksheet generation failed for %s", request.user.email
+            )
+            return Response(
+                {"error": "Custom worksheet generation failed"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response({"request": request_text, "content": content})
 
 
 # Persists worksheet for the user; does not send email (see GenerateAndSendWorksheetView / job).

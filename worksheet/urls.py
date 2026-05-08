@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import (
+    GenerateCustomWorksheetView,
     GenerateLLMContentView,
     GenerateWorksheetEmailView,
     GenerateAndSendWorksheetView,
@@ -25,6 +26,12 @@ urlpatterns = [
         "regenerate/",
         GenerateLLMContentView.as_view(),
         name="regenerate",
+    ),
+    # Generates custom worksheet; no email; no persist; returns generated content in the response.
+    path(
+        "custom/",
+        GenerateCustomWorksheetView.as_view(),
+        name="custom",
     ),
     # Full flow: enqueue generation job; worker saves worksheet and sends email.
     path(

@@ -1,5 +1,5 @@
 from worksheet.models import Worksheet
-from worksheet.services.prompts import build_payload
+from worksheet.services.prompts import build_custom_payload, build_payload
 from django.conf import settings
 import hashlib
 from openai import OpenAI
@@ -9,7 +9,10 @@ import re
 
 from worksheet.services.topic_rotator import get_and_increment_topics
 from worksheet.services.exercise_items import (
+    normalize_custom_exercise_answers,
     normalize_worksheet_answers,
+    validate_custom_blank_prompts,
+    validate_custom_exercises,
     validate_worksheet_blank_prompts,
     validate_worksheet_exercises,
 )
@@ -24,6 +27,13 @@ BLANK_PROMPT_CORRECTION_USER = (
     "contain exactly one '___'; translation prompts must contain none. "
     'Keep each "answer" as a JSON array of strings. '
     "Return the full worksheet JSON again with the same keys and shape."
+)
+
+CUSTOM_BLANK_PROMPT_CORRECTION_USER = (
+    "Some prompts had wrong blanks (missing ___ or multiple ___). Fix strictly: "
+    "each custom exercise prompt must contain exactly one '___'. "
+    'Keep each "answer" as a JSON array of strings. '
+    'Return the full JSON again with exactly one top-level key: "exercises".'
 )
 
 
@@ -112,6 +122,68 @@ def fix_json_structure_once(broken_content: str) -> str | None:
     return extract_json_from_response(repaired)
 
 
+def generate_custom_exercises(request_text: str) -> dict | None:
+    logger.info("Starting custom exercise generation")
+
+    messages = build_custom_payload(request_text)
+
+    for attempt in range(MAX_BLANK_REGENERATION_ATTEMPTS):
+        logger.info(
+            "Calling LLM to generate custom exercise content (attempt %s)",
+            attempt + 1,
+        )
+        raw_content = call_llm(messages)
+
+        candidate = extract_json_from_response(raw_content)
+
+        if candidate is None:
+            candidate = fix_json_structure_once(raw_content)
+
+        if candidate is None:
+            logger.error(
+                "Custom exercise generation failed: JSON could not be repaired",
+            )
+            return None
+
+        try:
+            parsed = json.loads(candidate)
+        except json.JSONDecodeError:
+            logger.error("Custom JSON invalid after repair attempt")
+            return None
+
+        normalize_custom_exercise_answers(parsed)
+
+        if not validate_custom_exercises(parsed):
+            logger.error(
+                "Invalid custom exercise structure. Expected exactly 8 "
+                'objects under {"exercises": [...]}, each with prompt and '
+                "list-of-string answers.",
+            )
+            return None
+
+        if validate_custom_blank_prompts(parsed):
+            logger.info("Custom exercises generated successfully")
+            return parsed
+
+        logger.warning(
+            "Custom exercise blank validation failed (attempt %s/%s)",
+            attempt + 1,
+            MAX_BLANK_REGENERATION_ATTEMPTS,
+        )
+        if attempt + 1 >= MAX_BLANK_REGENERATION_ATTEMPTS:
+            logger.error(
+                "Custom exercise blank validation failed after all attempts",
+            )
+            return None
+
+        messages = messages + [
+            {"role": "assistant", "content": candidate},
+            {"role": "user", "content": CUSTOM_BLANK_PROMPT_CORRECTION_USER},
+        ]
+
+    return None
+
+
 def generate_worksheet_for(user, themes=None):
     logger.info(
         "Starting worksheet generation for user: %s (ID: %s)",
@@ -154,7 +226,7 @@ def generate_worksheet_for(user, themes=None):
         if not validate_worksheet_exercises(parsed):
             logger.error(
                 "Invalid worksheet structure. Expected four sections "
-                "(past, present, future, translation), each with exactly 7 "
+                "(past, present, future, translation), each with exactly 8 "
                 'objects {"prompt": "...", "answer": ["..."]}.',
             )
             return None

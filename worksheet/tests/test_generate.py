@@ -7,6 +7,7 @@ from unittest.mock import patch, MagicMock, Mock
 from worksheet.services.generate import (
     extract_json_from_response,
     call_llm,
+    generate_custom_exercises,
     generate_worksheet_for,
 )
 from worksheet.models import Worksheet
@@ -24,7 +25,7 @@ def _section(prefix: str, *, conjugation: bool = True):
             ),
             "answer": [f"sol-{prefix}-{i}"],
         }
-        for i in range(7)
+        for i in range(8)
     ]
 
 
@@ -34,6 +35,18 @@ _MIN_WORKSHEET = {
     "future": _section("future"),
     "translation": _section("tr", conjugation=False),
 }
+
+
+def _custom_exercises(prefix: str = "custom"):
+    return {
+        "exercises": [
+            {
+                "prompt": f"Mi amiga ___ (venir) a la fiesta {i}.",
+                "answer": [f"venga-{prefix}-{i}"],
+            }
+            for i in range(8)
+        ]
+    }
 
 
 def _worksheet_with_past0(prompt: str, answer: str | list[str]):
@@ -288,10 +301,10 @@ class GenerateWorksheetForTest(TestCase):
         """Flat string lists (no prompt/answer) are no longer accepted."""
         mock_get_topics.return_value = ["past", "present", "future"]
         legacy = {
-            "past": [str(i) for i in range(7)],
-            "present": [str(i) for i in range(7)],
-            "future": [str(i) for i in range(7)],
-            "translation": [str(i) for i in range(7)],
+            "past": [str(i) for i in range(8)],
+            "present": [str(i) for i in range(8)],
+            "future": [str(i) for i in range(8)],
+            "translation": [str(i) for i in range(8)],
         }
         mock_call_llm.return_value = json.dumps(legacy)
 
@@ -353,3 +366,63 @@ class GenerateWorksheetForTest(TestCase):
         self.assertEqual(result, expected)
         stored = json.loads(Worksheet.objects.get(user=self.user).content)
         self.assertEqual(stored["past"][0]["answer"], ["sol-past-0"])
+
+
+class GenerateCustomExercisesTest(TestCase):
+    @patch("worksheet.services.generate.call_llm")
+    def test_successful_custom_generation(self, mock_call_llm):
+        payload = _custom_exercises()
+        mock_call_llm.return_value = json.dumps(payload, ensure_ascii=False)
+
+        result = generate_custom_exercises("Subjunctive tense about birthdays")
+
+        self.assertEqual(result, payload)
+        self.assertEqual(len(result["exercises"]), 8)
+
+    @patch("worksheet.services.generate.call_llm")
+    def test_custom_generation_repairs_json(self, mock_call_llm):
+        payload = _custom_exercises()
+        mock_call_llm.side_effect = [
+            "not json",
+            json.dumps(payload, ensure_ascii=False),
+        ]
+
+        result = generate_custom_exercises("Subjunctive tense about birthdays")
+
+        self.assertEqual(result, payload)
+        self.assertEqual(mock_call_llm.call_count, 2)
+
+    @patch("worksheet.services.generate.call_llm")
+    def test_custom_generation_normalizes_string_answers(self, mock_call_llm):
+        payload = _custom_exercises()
+        payload["exercises"][0]["answer"] = "venga"
+        mock_call_llm.return_value = json.dumps(payload, ensure_ascii=False)
+
+        result = generate_custom_exercises("Subjunctive tense about birthdays")
+
+        self.assertEqual(result["exercises"][0]["answer"], ["venga"])
+
+    @patch("worksheet.services.generate.call_llm")
+    def test_custom_generation_retries_when_blank_validation_fails_once(
+        self, mock_call_llm
+    ):
+        bad = _custom_exercises()
+        bad["exercises"][0]["prompt"] = "Mi amiga viene a la fiesta."
+        good = _custom_exercises("good")
+        mock_call_llm.side_effect = [
+            json.dumps(bad, ensure_ascii=False),
+            json.dumps(good, ensure_ascii=False),
+        ]
+
+        result = generate_custom_exercises("Subjunctive tense about birthdays")
+
+        self.assertEqual(result, good)
+        self.assertEqual(mock_call_llm.call_count, 2)
+
+    @patch("worksheet.services.generate.call_llm")
+    def test_custom_generation_returns_none_for_invalid_structure(self, mock_call_llm):
+        mock_call_llm.return_value = json.dumps({"exercises": []})
+
+        result = generate_custom_exercises("Subjunctive tense about birthdays")
+
+        self.assertIsNone(result)
