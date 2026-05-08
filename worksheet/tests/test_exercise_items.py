@@ -3,6 +3,7 @@ from django.test import TestCase
 from worksheet.services.exercise_items import (
     exercise_prompt_for_display,
     has_exactly_one_blank,
+    normalize_worksheet_answers,
     parse_worksheet_content,
     validate_worksheet_blank_prompts,
     validate_worksheet_exercises,
@@ -10,7 +11,7 @@ from worksheet.services.exercise_items import (
 
 
 def _valid_data():
-    sec = [{"prompt": f"p{i}", "answer": f"a{i}"} for i in range(7)]
+    sec = [{"prompt": f"p{i}", "answer": [f"a{i}"]} for i in range(7)]
     return {
         "past": sec,
         "present": sec,
@@ -51,6 +52,27 @@ class ExerciseItemsTest(TestCase):
         d["past"][0] = "nope"
         self.assertFalse(validate_worksheet_exercises(d))
 
+    def test_validate_string_answer(self):
+        d = _valid_data()
+        d["past"][0]["answer"] = "string-not-allowed"
+        self.assertFalse(validate_worksheet_exercises(d))
+
+    def test_validate_empty_answer_list(self):
+        d = _valid_data()
+        d["past"][0]["answer"] = []
+        self.assertFalse(validate_worksheet_exercises(d))
+
+    def test_validate_answer_list_with_blank_string(self):
+        d = _valid_data()
+        d["past"][0]["answer"] = ["ok", "  "]
+        self.assertFalse(validate_worksheet_exercises(d))
+
+    def test_normalize_coerces_string_answer(self):
+        d = _valid_data()
+        d["past"][0]["answer"] = "  solo  "
+        normalize_worksheet_answers(d)
+        self.assertEqual(d["past"][0]["answer"], ["solo"])
+
     def test_parse_content(self):
         import json
 
@@ -68,16 +90,16 @@ class ExerciseItemsTest(TestCase):
         d = _valid_data()
         self.assertFalse(validate_worksheet_blank_prompts(d))
         d["past"] = [
-            {"prompt": f"p{i} ___ (ver)", "answer": f"a{i}"} for i in range(7)
+            {"prompt": f"p{i} ___ (ver)", "answer": [f"a{i}"]} for i in range(7)
         ]
         d["present"] = [
-            {"prompt": f"p{i} ___ (ver)", "answer": f"a{i}"} for i in range(7)
+            {"prompt": f"p{i} ___ (ver)", "answer": [f"a{i}"]} for i in range(7)
         ]
         d["future"] = [
-            {"prompt": f"p{i} ___ (ver)", "answer": f"a{i}"} for i in range(7)
+            {"prompt": f"p{i} ___ (ver)", "answer": [f"a{i}"]} for i in range(7)
         ]
         d["translation"] = [
-            {"prompt": f"En {i}. (usar: infinitivo)", "answer": f"a{i}"}
+            {"prompt": f"En {i}. (usar: infinitivo)", "answer": [f"a{i}"]}
             for i in range(7)
         ]
         self.assertTrue(validate_worksheet_blank_prompts(d))

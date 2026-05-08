@@ -9,6 +9,7 @@ import re
 
 from worksheet.services.topic_rotator import get_and_increment_topics
 from worksheet.services.exercise_items import (
+    normalize_worksheet_answers,
     validate_worksheet_blank_prompts,
     validate_worksheet_exercises,
 )
@@ -21,6 +22,7 @@ BLANK_PROMPT_CORRECTION_USER = (
     "Some prompts had wrong blanks (missing ___, multiple ___, or ___ in "
     "translation). Fix strictly: each past/present/future prompt must "
     "contain exactly one '___'; translation prompts must contain none. "
+    'Keep each "answer" as a JSON array of strings. '
     "Return the full worksheet JSON again with the same keys and shape."
 )
 
@@ -147,16 +149,18 @@ def generate_worksheet_for(user, themes=None):
             logger.error("JSON invalid after repair attempt")
             return None
 
+        normalize_worksheet_answers(parsed)
+
         if not validate_worksheet_exercises(parsed):
             logger.error(
                 "Invalid worksheet structure. Expected four sections "
                 "(past, present, future, translation), each with exactly 7 "
-                'objects {"prompt": "...", "answer": "..."}.',
+                'objects {"prompt": "...", "answer": ["..."]}.',
             )
             return None
 
         if validate_worksheet_blank_prompts(parsed):
-            content = candidate
+            content = json.dumps(parsed, ensure_ascii=False)
             break
 
         logger.warning(

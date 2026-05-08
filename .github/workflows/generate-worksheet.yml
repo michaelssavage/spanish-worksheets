@@ -75,14 +75,14 @@ jobs:
           echo "Failed to obtain token after $MAX_RETRIES attempts."
           exit 1
 
-      - name: Call generate worksheet endpoint
+      - name: Call worksheet delivery endpoint
         run: |
           TOKEN="${{ steps.get_token.outputs.token }}"
           if [ -z "$TOKEN" ]; then
             echo "ERROR: Token is empty!"
             exit 1
           fi
-          echo "Calling generate worksheet endpoint..."
+          echo "Calling POST /api/worksheet/delivery/ ..."
           curl --fail --show-error -L --max-redirs 5 -X POST \
-            "${{ secrets.API_BASE_URL }}/api/worksheet/generate-worksheet/" \
+            "${{ secrets.API_BASE_URL }}/api/worksheet/delivery/" \
             -H "Authorization: Token $TOKEN"

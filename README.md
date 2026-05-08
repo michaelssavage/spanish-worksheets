@@ -14,7 +14,7 @@ A Django app deployed to Railway with a Github Action CRON job. The CRON runs ev
 5. `poetry run python manage.py migrate`
 6. `poetry run python manage.py createsuperuser`
 
-Set `REDIS_URL` in `.env` (see `.env.example`). Worksheet delivery uses **django-rq**: `POST /api/worksheet/generate-worksheet/` only enqueues a job. Run a worker in a second terminal:
+Set `REDIS_URL` in `.env` (see `.env.example`). Worksheet delivery uses **django-rq**: `POST /api/worksheet/delivery/` only enqueues a job. Run a worker in a second terminal:
 
 ```bash
 poetry run python manage.py rqworker default
@@ -22,7 +22,12 @@ poetry run python manage.py rqworker default
 
 ### Railway / production
 
-Use the same repo for **two** Railway services (or one web + one worker process), both with `DATABASE_URL`, `REDIS_URL`, and the same env as the web app. **Web:** `gunicorn` (or your current start command). **Worker:** `python manage.py rqworker default`. Without the worker, jobs accumulate in Redis and emails are never sent, while HTTP clients may still see `202 Accepted`.
+Use the same repo for **two** Railway services, both with `DATABASE_URL`, `REDIS_URL`, and the same env as the web app:
+
+- **Web:** `./start.sh`
+- **Worker:** `poetry run python manage.py rqworker default`
+
+Do not start an RQ worker from the web service. Without the worker service, jobs accumulate in Redis and emails are never sent, while HTTP clients may still see `202 Accepted`.
 
 ### creating a new subsection
 

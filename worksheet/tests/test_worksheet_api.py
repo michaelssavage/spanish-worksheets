@@ -21,7 +21,7 @@ class LatestWorksheetViewTest(TestCase):
         )
         self.token = Token.objects.create(user=self.user)
         self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token.key}")
-        self.url = "/api/worksheet/latest/"
+        self.url = "/api/worksheet/"
 
     def test_requires_auth(self):
         self.client.credentials()
@@ -48,4 +48,5 @@ class LatestWorksheetViewTest(TestCase):
         self.assertIn("past", response.data["content"])
         first = response.data["content"]["past"][0]
         self.assertEqual(set(first.keys()), {"prompt", "answer"})
-        self.assertTrue(first["answer"].startswith("sol-"))
+        self.assertIsInstance(first["answer"], list)
+        self.assertTrue(first["answer"][0].startswith("sol-"))

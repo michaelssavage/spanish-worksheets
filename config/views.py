@@ -25,6 +25,7 @@ def health(request):
     return JsonResponse(payload, status=200 if on_default else 503)
 
 
+# flake8: noqa: E501
 def home(request):
     html = """
     <!DOCTYPE html>
@@ -61,14 +62,17 @@ def home(request):
                 <li><a href="/admin/">/admin/</a> - Django Admin</li>
                 <li><strong>/api/docs/</strong> - Swagger UI</li>
                 <li><strong>/api/token/</strong> - Get authentication token (POST)</li>
-                <li><strong>/api/worksheet/generate-content/</strong> - Generate content only (POST)</li>
-                <li><strong>/api/worksheet/generate-worksheet/</strong> - Generate worksheet (POST)</li>
+                <li><strong>/api/worksheet/</strong> - Latest worksheet (GET); parsed JSON; no generate or email</li>
+                <li><strong>/api/worksheet/regenerate/</strong> - Persist a new worksheet (POST); no email; returns content in the response</li>
+                <li><strong>/api/worksheet/email/</strong> - Email the most recent worksheet (POST); does not generate</li>
+                <li><strong>/api/worksheet/delivery/</strong> - Async full flow (POST): enqueue job; worker generates, saves, and emails</li>
+                <li><strong>/api/worksheet/delivery/{job_id}/</strong> - Delivery job status (GET)</li>
             </ul>
             <h2>Quick Start:</h2>
             <ol>
                 <li>Get a token: <code>POST /api/token/</code></li>
                 <li>Use token in header: <code>Authorization: Token YOUR_TOKEN</code></li>
-                <li>Generate worksheet: <code>POST /api/worksheet/generate-content/</code></li>
+                <li>Regenerate and persist (no email): <code>POST /api/worksheet/regenerate/</code></li>
             </ol>
         </div>
     </body>

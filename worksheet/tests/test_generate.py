@@ -22,7 +22,7 @@ def _section(prefix: str, *, conjugation: bool = True):
                 if conjugation
                 else f"{prefix}-{i} English. (usar: infinitivo)"
             ),
-            "answer": f"sol-{prefix}-{i}",
+            "answer": [f"sol-{prefix}-{i}"],
         }
         for i in range(7)
     ]
@@ -36,14 +36,15 @@ _MIN_WORKSHEET = {
 }
 
 
-def _worksheet_with_past0(prompt: str, answer: str):
+def _worksheet_with_past0(prompt: str, answer: str | list[str]):
     data = {
         "past": _section("past"),
         "present": _section("present"),
         "future": _section("future"),
         "translation": _section("tr", conjugation=False),
     }
-    data["past"][0] = {"prompt": prompt, "answer": answer}
+    ans = [answer] if isinstance(answer, str) else answer
+    data["past"][0] = {"prompt": prompt, "answer": ans}
     return data
 
 
@@ -122,9 +123,7 @@ class CallLLMTest(TestCase):
 
         mock_response = Mock()
         mock_response.choices = [Mock()]
-        mock_response.choices[0].message.content = (
-            '```json\n{"result": "success"}\n```'
-        )
+        mock_response.choices[0].message.content = '```json\n{"result": "success"}\n```'
         mock_client.chat.completions.create.return_value = mock_response
 
         payload = [{"role": "user", "content": "test"}]
@@ -162,24 +161,23 @@ class GenerateWorksheetForTest(TestCase):
 
     @patch("worksheet.services.generate.call_llm")
     @patch("worksheet.services.generate.get_and_increment_topics")
-    def test_successful_worksheet_generation(
-        self, mock_get_topics, mock_call_llm
-    ):
+    def test_successful_worksheet_generation(self, mock_get_topics, mock_call_llm):
         """Test complete worksheet generation and saving"""
         # Setup mocks
         mock_get_topics.return_value = ["past", "present", "future"]
         payload = _worksheet_with_past0("test ___ (ver)", "sol-test")
-        mock_call_llm.return_value = json.dumps(payload)
+        expected = json.dumps(payload, ensure_ascii=False)
+        mock_call_llm.return_value = expected
 
         # Execute
         result = generate_worksheet_for(self.user)
 
         # Assert
-        self.assertEqual(result, mock_call_llm.return_value)
+        self.assertEqual(result, expected)
         self.assertEqual(Worksheet.objects.filter(user=self.user).count(), 1)
 
         worksheet = Worksheet.objects.get(user=self.user)
-        self.assertEqual(worksheet.content, mock_call_llm.return_value)
+        self.assertEqual(worksheet.content, expected)
         self.assertEqual(
             worksheet.topics,
             ["past", "present", "future", "translation"],
@@ -187,12 +185,10 @@ class GenerateWorksheetForTest(TestCase):
 
     @patch("worksheet.services.generate.call_llm")
     @patch("worksheet.services.generate.get_and_increment_topics")
-    def test_duplicate_content_returns_none(
-        self, mock_get_topics, mock_call_llm
-    ):
+    def test_duplicate_content_returns_none(self, mock_get_topics, mock_call_llm):
         """Test that duplicate content hash returns None"""
         mock_get_topics.return_value = ["past", "present", "future"]
-        mock_call_llm.return_value = json.dumps(_MIN_WORKSHEET)
+        mock_call_llm.return_value = json.dumps(_MIN_WORKSHEET, ensure_ascii=False)
 
         # Generate first worksheet
         result1 = generate_worksheet_for(self.user)
@@ -207,20 +203,21 @@ class GenerateWorksheetForTest(TestCase):
 
     @patch("worksheet.services.generate.call_llm")
     @patch("worksheet.services.generate.get_and_increment_topics")
-    def test_replaces_existing_user_worksheet(
-        self, mock_get_topics, mock_call_llm
-    ):
+    def test_replaces_existing_user_worksheet(self, mock_get_topics, mock_call_llm):
         """Test that new worksheet replaces old one for same user"""
         mock_get_topics.return_value = ["past", "present", "future"]
 
         # Create first worksheet
-        mock_call_llm.return_value = json.dumps(
-            _worksheet_with_past0("first ___ (ser)", "fa")
+        first = json.dumps(
+            _worksheet_with_past0("first ___ (ser)", "fa"), ensure_ascii=False
         )
+        mock_call_llm.return_value = first
         generate_worksheet_for(self.user)
 
         # Create second worksheet with different content
-        second = json.dumps(_worksheet_with_past0("second ___ (ir)", "sa"))
+        second = json.dumps(
+            _worksheet_with_past0("second ___ (ir)", "sa"), ensure_ascii=False
+        )
         mock_call_llm.return_value = second
         result = generate_worksheet_for(self.user)
 
@@ -243,7 +240,7 @@ class GenerateWorksheetForTest(TestCase):
         )
 
         mock_get_topics.return_value = ["past", "present", "future"]
-        mock_call_llm.return_value = json.dumps(_MIN_WORKSHEET)
+        mock_call_llm.return_value = json.dumps(_MIN_WORKSHEET, ensure_ascii=False)
 
         # Generate for first user
         result1 = generate_worksheet_for(self.user)
@@ -274,7 +271,7 @@ class GenerateWorksheetForTest(TestCase):
         import hashlib
 
         mock_get_topics.return_value = ["past", "present", "future"]
-        test_content = json.dumps(_MIN_WORKSHEET)
+        test_content = json.dumps(_MIN_WORKSHEET, ensure_ascii=False)
         mock_call_llm.return_value = test_content
 
         generate_worksheet_for(self.user)
@@ -305,11 +302,9 @@ class GenerateWorksheetForTest(TestCase):
 
     @patch("worksheet.services.generate.call_llm")
     @patch("worksheet.services.generate.get_and_increment_topics")
-    def test_explicit_themes_skip_topic_rotator(
-        self, mock_get_topics, mock_call_llm
-    ):
+    def test_explicit_themes_skip_topic_rotator(self, mock_get_topics, mock_call_llm):
         """When themes are passed in, the rotator is not used."""
-        mock_call_llm.return_value = json.dumps(_MIN_WORKSHEET)
+        mock_call_llm.return_value = json.dumps(_MIN_WORKSHEET, ensure_ascii=False)
 
         generate_worksheet_for(self.user, themes=["bugs", "deploys"])
 
@@ -325,9 +320,10 @@ class GenerateWorksheetForTest(TestCase):
         """Regenerates with a correction turn when ___ rules are violated."""
         bad = json.loads(json.dumps(_MIN_WORKSHEET))
         bad["past"][0] = {"prompt": "two ___ (a) ___ (b)", "answer": "x"}
+        good = json.dumps(_MIN_WORKSHEET, ensure_ascii=False)
         mock_call_llm.side_effect = [
-            json.dumps(bad),
-            json.dumps(_MIN_WORKSHEET),
+            json.dumps(bad, ensure_ascii=False),
+            good,
         ]
         mock_get_topics.return_value = ["past", "present", "future"]
 
@@ -337,5 +333,23 @@ class GenerateWorksheetForTest(TestCase):
         self.assertEqual(mock_call_llm.call_count, 2)
         self.assertEqual(
             Worksheet.objects.get(user=self.user).content,
-            json.dumps(_MIN_WORKSHEET),
+            good,
         )
+
+    @patch("worksheet.services.generate.call_llm")
+    @patch("worksheet.services.generate.get_and_increment_topics")
+    def test_normalizes_string_answers_from_llm(self, mock_get_topics, mock_call_llm):
+        """String \"answer\" fields from the model are coerced to one-element lists."""
+        mock_get_topics.return_value = ["past", "present", "future"]
+        payload = json.loads(json.dumps(_MIN_WORKSHEET))
+        for section in payload.values():
+            for item in section:
+                item["answer"] = item["answer"][0]
+        mock_call_llm.return_value = json.dumps(payload, ensure_ascii=False)
+
+        result = generate_worksheet_for(self.user)
+
+        expected = json.dumps(_MIN_WORKSHEET, ensure_ascii=False)
+        self.assertEqual(result, expected)
+        stored = json.loads(Worksheet.objects.get(user=self.user).content)
+        self.assertEqual(stored["past"][0]["answer"], ["sol-past-0"])

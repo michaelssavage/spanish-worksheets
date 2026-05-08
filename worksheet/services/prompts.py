@@ -6,14 +6,24 @@ logger = logging.getLogger(__name__)
 SYSTEM_PROMPT = (
     "You generate Spanish-learning worksheets for intermediate and advanced learners. "
     "Use natural, idiomatic Spanish in realistic contexts, especially work and technology.\n\n"
-    "Pedagogy: prefer concrete situations (deadlines, bugs, meetings, decisions, failures); "
     "avoid vague sentences. Avoid leaning on common regular verbs like hablar, trabajar, necesitar. "
-    "Use many irregular verbs in conjugation sections (at least half the verbs per section).\n\n"
+    "Use many irregular and subjunctive verbs in conjugation sections.\n\n"
     "Ensure all Spanish is correct and natural. Do not use 'ir a + infinitive' in any form.\n\n"
-    'Output: each exercise is a JSON object with exactly two string fields, "prompt" and "answer". '
-    'Never omit either field. For translation items, "answer" is the full Spanish sentence. '
-    'For conjugation items (blanks), "answer" is ONLY the correctly conjugated verb or auxiliary + '
-    "participle when the tense requires it — never the full sentence.\n\n"
+    'Output: each exercise is a JSON object with two fields: "prompt" (string) and "answer" '
+    "(JSON array of strings). Never omit either field.\n"
+    '- For translation items, each string in "answer" is a full correct Spanish sentence '
+    '(usually one string). For conjugation items (blanks), each string in "answer" is ONLY '
+    "a correctly conjugated verb or auxiliary + participle when the tense requires it — never "
+    "the full sentence.\n"
+    "- If several forms are acceptable, put each form as its own string in the array. Do not "
+    'join alternatives with " | " inside one string.\n'
+    "- Conjugation prompts must include an explicit subject so person and number are clear: "
+    "either a subject pronoun (Yo, Tú, Él, Ella, Usted, Nosotros/as, Vosotros/as, Ellos/as, "
+    "Ustedes) or a noun phrase that fixes person and number (e.g. Mi jefa, Los clientes). "
+    "Do not omit the subject in a way that leaves who conjugates unclear.\n"
+    "- If ambiguity is intentional, it must be grammatical only (e.g. acceptable tense/aspect "
+    "alternates), not from a missing subject; include every acceptable conjugation as a "
+    'separate string in "answer".\n\n'
     "Follow the user's JSON schema and section instructions exactly. Output valid JSON only when asked."
 )
 
@@ -21,13 +31,17 @@ THEME_POOLS = [
     ["reuniones", "decisiones de equipo", "conflictos laborales"],
     ["plazos", "entregas urgentes", "errores en proyectos"],
     ["bugs", "debugging", "errores en producción"],
-    ["deploys", "fallos en servidores", "rollback"],
+    ["deportes", "partidos", "juegos en equipo"],
     ["revisiones de código", "pull requests", "comentarios"],
-    ["trabajo remoto", "zonas horarias", "reuniones virtuales"],
+    ["finanzas personales", "gastos imprevistos", "deudas"],
     ["mensajes malinterpretados", "falta de comunicación", "urgencias"],
     ["clientes", "negociaciones", "contratos"],
+    ["problemas de salud", "cansancio extremo", "falta de sueño"],
     ["pagos", "facturas", "retrasos"],
     ["errores graves", "decisiones difíciles", "consecuencias"],
+    ["el tiempo libre", "planes cancelados a última hora", "quedadas improvisadas"],
+    ["cumpleaños en la oficina", "pasteles traídos de casa", "vaquinas para regalos"],
+    ["la resaca del lunes", "el viernes por la tarde", "sobrevivir hasta las 6"],
 ]
 
 
@@ -41,10 +55,14 @@ Themes:
 Worksheet rules (all sections):
 - Spanish only in answers and in conjugation prompts.
 - Do NOT use obvious mistakes like "yo sabo" or "yo cabo".
+- Each \"answer\" is a JSON array of non-empty strings (one or more). Same shape in all sections.
 
 Conjugation sections — past, present, future (7 exercises each as JSON objects):
 - Shared: each \"prompt\" contains exactly ONE blank, written as: ___ (infinitive). No more, no fewer.
-- Shared: the blank replaces the verb to conjugate; each \"answer\" is ONLY that conjugated form (or auxiliary + participle if the tense requires it), not the full sentence.
+- Shared: the blank replaces the verb to conjugate; each string in \"answer\" is ONLY that conjugated form (or auxiliary + participle if the tense requires it), not the full sentence. If multiple conjugations are acceptable, use multiple strings in \"answer\" (never one string with \" | \").
+- Explicit subject: each conjugation \"prompt\" must show who acts — subject pronoun
+  (Yo, Tú, Él, …) or a noun phrase that fixes person and number. Do not drop the subject in a way that makes the expected conjugation ambiguous.
+- Intentional ambiguity only when grammatical (e.g. tense/aspect alternates); then list every acceptable form in \"answer\".
 
 Past (distribute across the 7 items):
 - Pretérito indefinido, pretérito imperfecto, pretérito perfecto, pluscuamperfecto
@@ -64,7 +82,7 @@ Translation — English → Spanish (7 exercises as JSON objects):
 - The constraint is exactly ONE of:
   a) Required verb: (usar: infinitivo) e.g. (usar: poner)
   b) Required tense: (usar: nombre del tiempo) e.g. (usar: pretérito indefinido)
-- \"answer\": the full correct Spanish translation, obeying the constraint.
+- \"answer\": array of full correct Spanish translations obeying the constraint (usually one string; more if several wordings are equally valid).
 - Do NOT put the Spanish translation in \"prompt\". Do NOT use ___ in translation prompts.
 - Do NOT include more than one constraint per item.
 
@@ -74,40 +92,40 @@ Do not add text outside the JSON.
 
 {{
   "past": [
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}}
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}}
   ],
   "present": [
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}}
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}}
   ],
   "future": [
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}}
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}}
   ],
   "translation": [
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}}
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}}
   ]
 }}
 

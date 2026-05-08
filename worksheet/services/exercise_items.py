@@ -1,4 +1,4 @@
-"""Worksheet exercise items: prompt (learner-facing) and answer (solution)."""
+"""Worksheet exercise items: prompt (learner-facing) and answer (list of solutions)."""
 
 from __future__ import annotations
 
@@ -29,8 +29,22 @@ def exercise_prompt_for_display(item: Any) -> str:
     return ""
 
 
+def normalize_worksheet_answers(data: dict[str, Any]) -> None:
+    """Coerce string answer fields to single-element lists (LLM slip tolerance)."""
+    for key in REQUIRED_SECTION_KEYS:
+        section = data.get(key)
+        if not isinstance(section, list):
+            continue
+        for item in section:
+            if not isinstance(item, dict):
+                continue
+            ans = item.get("answer")
+            if isinstance(ans, str) and ans.strip():
+                item["answer"] = [ans.strip()]
+
+
 def validate_worksheet_exercises(data: dict[str, Any]) -> bool:
-    """True if each section has seven objects with prompt and answer set."""
+    """True if each section has seven objects with prompt and list-of-string answers."""
     if set(data.keys()) != REQUIRED_SECTION_KEYS:
         return False
     for key in REQUIRED_SECTION_KEYS:
@@ -44,7 +58,9 @@ def validate_worksheet_exercises(data: dict[str, Any]) -> bool:
             answer = item.get("answer")
             if not isinstance(prompt, str) or not prompt.strip():
                 return False
-            if not isinstance(answer, str) or not answer.strip():
+            if not isinstance(answer, list) or len(answer) < 1:
+                return False
+            if not all(isinstance(s, str) and s.strip() for s in answer):
                 return False
     return True
 

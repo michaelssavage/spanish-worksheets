@@ -8,23 +8,33 @@ from .views import (
 )
 
 urlpatterns = [
+    # No generation or email; returns the most recent worksheet (parsed JSON).
     path(
-        "generate-content/", GenerateLLMContentView.as_view(), name="generate-content"
+        "",
+        LatestWorksheetView.as_view(),
+        name="latest",
     ),
+    # No generation; emails the user’s most recently saved worksheet.
     path(
-        "generate-worksheet/",
-        GenerateAndSendWorksheetView.as_view(),
-        name="generate-worksheet",
-    ),
-    path(
-        "send-worksheet-email/",
+        "email/",
         GenerateWorksheetEmailView.as_view(),
-        name="generate-worksheet-email",
+        name="email",
     ),
-    path("latest/", LatestWorksheetView.as_view(), name="latest-worksheet"),
+    # Persists worksheet; no email; returns generated content in the response.
     path(
-        "worksheet-job-status/<str:job_id>/",
+        "regenerate/",
+        GenerateLLMContentView.as_view(),
+        name="regenerate",
+    ),
+    # Full flow: enqueue generation job; worker saves worksheet and sends email.
+    path(
+        "delivery/",
+        GenerateAndSendWorksheetView.as_view(),
+        name="delivery",
+    ),
+    path(
+        "delivery/<str:job_id>/",
         WorksheetJobStatusView.as_view(),
-        name="worksheet-job-status",
+        name="delivery-status",
     ),
 ]
