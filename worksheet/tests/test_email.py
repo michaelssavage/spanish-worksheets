@@ -77,7 +77,7 @@ class FormatWorksheetHtmlTest(TestCase):
                 "past": ["Ayer fui al parque.", "Comí pizza."],
                 "present": ["Voy a la escuela.", "Estudio español."],
                 "future": ["Mañana viajaré.", "Compraré un coche."],
-                "translation": ["palabra", "frase"],
+                "subjunctive": ["palabra", "frase"],
             }
         )
         result = format_worksheet_html(content)
@@ -86,7 +86,7 @@ class FormatWorksheetHtmlTest(TestCase):
         self.assertIn("Past Tense", result)
         self.assertIn("Present Tense", result)
         self.assertIn("Future Tense", result)
-        self.assertIn("Translation", result)
+        self.assertIn("Subjunctive Tense", result)
         self.assertIn("Ayer fui al parque.", result)
         self.assertIn("Voy a la escuela.", result)
 
@@ -96,7 +96,7 @@ class FormatWorksheetHtmlTest(TestCase):
             "past": ["Sentence 1"],
             "present": ["Sentence 2"],
             "future": ["Sentence 3"],
-            "translation": ["word"],
+            "subjunctive": ["word"],
         }
         result = format_worksheet_html(content)
 
@@ -118,6 +118,7 @@ class FormatWorksheetHtmlTest(TestCase):
         # Other sections should be empty but structure should exist
         self.assertIn("Present Tense", result)
         self.assertIn("Future Tense", result)
+        self.assertIn("Subjunctive Tense", result)
 
     def test_string_values_normalization(self):
         """Test that string values are normalized to lists"""
@@ -125,7 +126,7 @@ class FormatWorksheetHtmlTest(TestCase):
             "past": '"Sentence 1", "Sentence 2"',  # String that should be split
             "present": ["Normal list"],
             "future": "Single sentence., Another sentence.",
-            "translation": ["word"],
+            "subjunctive": ["word"],
         }
         result = format_worksheet_html(content)
 
@@ -140,7 +141,7 @@ class FormatWorksheetHtmlTest(TestCase):
             "past": ["<script>alert('xss')</script>", "Normal & safe"],
             "present": ["<img src=x onerror=alert(1)>"],
             "future": ["'quotes' & \"more quotes\""],
-            "translation": ["<b>bold</b>"],
+            "subjunctive": ["<b>bold</b>"],
         }
         result = format_worksheet_html(content)
 
@@ -210,7 +211,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Ayer fui al parque."],
             "present": ["Voy a la escuela."],
             "future": ["Mañana viajaré."],
-            "translation": ["palabra"],
+            "subjunctive": ["palabra"],
         }
 
         # Execute
@@ -251,7 +252,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Test"],
             "present": ["Test"],
             "future": ["Test"],
-            "translation": ["Test"],
+            "subjunctive": ["Test"],
         }
         send_worksheet_email(self.user, content)
 
@@ -277,7 +278,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Test"],
             "present": ["Test"],
             "future": ["Test"],
-            "translation": ["Test"],
+            "subjunctive": ["Test"],
         }
 
         with self.assertRaises(ValueError) as context:
@@ -297,7 +298,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Test"],
             "present": ["Test"],
             "future": ["Test"],
-            "translation": ["Test"],
+            "subjunctive": ["Test"],
         }
 
         with self.assertRaises(ValueError) as context:
@@ -328,7 +329,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Test"],
             "present": ["Test"],
             "future": ["Test"],
-            "translation": ["Test"],
+            "subjunctive": ["Test"],
         }
 
         with self.assertRaises(requests.exceptions.HTTPError):
@@ -352,7 +353,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Test"],
             "present": ["Test"],
             "future": ["Test"],
-            "translation": ["Test"],
+            "subjunctive": ["Test"],
         }
 
         with self.assertRaises(requests.exceptions.Timeout):
@@ -375,7 +376,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Ayer fui al parque.", "Comí pizza."],
             "present": ["Voy a la escuela."],
             "future": ["Mañana viajaré."],
-            "translation": ["palabra", "frase"],
+            "subjunctive": ["palabra", "frase"],
         }
         send_worksheet_email(self.user, content)
 
@@ -386,7 +387,7 @@ class SendWorksheetEmailTest(TestCase):
         self.assertIn("El pasado:", plain_text)
         self.assertIn("El presente:", plain_text)
         self.assertIn("El futuro:", plain_text)
-        self.assertIn("Traducción:", plain_text)
+        self.assertIn("El subjuntivo:", plain_text)
         self.assertIn("Ayer fui al parque.", plain_text)
         self.assertIn("Comí pizza.", plain_text)
 
@@ -408,7 +409,7 @@ class SendWorksheetEmailTest(TestCase):
                 "past": ["Test past"],
                 "present": ["Test present"],
                 "future": ["Test future"],
-                "translation": ["Test vocab"],
+                "subjunctive": ["Test vocab"],
             }
         )
         send_worksheet_email(self.user, content)
@@ -436,7 +437,7 @@ class SendWorksheetEmailTest(TestCase):
             "past": ["Test"],
             "present": ["Test"],
             "future": ["Test"],
-            "translation": ["Test"],
+            "subjunctive": ["Test"],
         }
         send_worksheet_email(self.user, content)
 

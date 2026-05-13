@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-REQUIRED_SECTION_KEYS = frozenset({"past", "present", "future", "translation"})
-CONJUGATION_SECTION_KEYS = frozenset({"past", "present", "future"})
+REQUIRED_SECTION_KEYS = frozenset({"past", "present", "future", "subjunctive"})
+CONJUGATION_SECTION_KEYS = REQUIRED_SECTION_KEYS
 CUSTOM_EXERCISES_KEY = "exercises"
 ITEMS_PER_SECTION = 8
 BLANK_MARKER = "___"
@@ -95,7 +95,7 @@ def validate_custom_blank_prompts(data: dict[str, Any]) -> bool:
 
 
 def validate_worksheet_exercises(data: dict[str, Any]) -> bool:
-    """True if each section has seven objects with prompt and list-of-string answers."""
+    """True if each section has eight objects with prompt and list-of-string answers."""
     if set(data.keys()) != REQUIRED_SECTION_KEYS:
         return False
     for key in REQUIRED_SECTION_KEYS:
@@ -118,8 +118,8 @@ def validate_worksheet_exercises(data: dict[str, Any]) -> bool:
 
 def validate_worksheet_blank_prompts(data: dict[str, Any]) -> bool:
     """
-    True if past/present/future each have exactly one ___ and translation
-    has none. Call only after validate_worksheet_exercises passes.
+    True if every worksheet section prompt has exactly one ___. Call only after
+    validate_worksheet_exercises passes.
     """
     for key in CONJUGATION_SECTION_KEYS:
         section = data.get(key)
@@ -131,15 +131,6 @@ def validate_worksheet_blank_prompts(data: dict[str, Any]) -> bool:
             prompt = item.get("prompt")
             if not has_exactly_one_blank(prompt):
                 return False
-    trans = data.get("translation")
-    if not isinstance(trans, list):
-        return False
-    for item in trans:
-        if not isinstance(item, dict):
-            return False
-        prompt = item.get("prompt")
-        if not isinstance(prompt, str) or BLANK_MARKER in prompt:
-            return False
     return True
 
 

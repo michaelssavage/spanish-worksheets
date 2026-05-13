@@ -22,9 +22,9 @@ logger = logging.getLogger(__name__)
 MAX_BLANK_REGENERATION_ATTEMPTS = 3
 
 BLANK_PROMPT_CORRECTION_USER = (
-    "Some prompts had wrong blanks (missing ___, multiple ___, or ___ in "
-    "translation). Fix strictly: each past/present/future prompt must "
-    "contain exactly one '___'; translation prompts must contain none. "
+    "Some prompts had wrong blanks (missing ___, multiple ___). Fix strictly: "
+    "each past/present/future/subjunctive prompt must contain exactly one "
+    "'___'. "
     'Keep each "answer" as a JSON array of strings. '
     "Return the full worksheet JSON again with the same keys and shape."
 )
@@ -226,7 +226,7 @@ def generate_worksheet_for(user, themes=None):
         if not validate_worksheet_exercises(parsed):
             logger.error(
                 "Invalid worksheet structure. Expected four sections "
-                "(past, present, future, translation), each with exactly 8 "
+                "(past, present, future, subjunctive), each with exactly 8 "
                 'objects {"prompt": "...", "answer": ["..."]}.',
             )
             return None
@@ -265,7 +265,7 @@ def generate_worksheet_for(user, themes=None):
         user=user,
         content_hash=h,
         content=content,
-        topics=["past", "present", "future", "translation"],
+        topics=["past", "present", "future", "subjunctive"],
         themes=themes,
     )
 

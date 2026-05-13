@@ -19,7 +19,7 @@ def _valid_data():
         "past": sec,
         "present": sec,
         "future": sec,
-        "translation": sec,
+        "subjunctive": sec,
     }
 
 
@@ -51,7 +51,7 @@ class ExerciseItemsTest(TestCase):
 
     def test_validate_wrong_key_set(self):
         d = _valid_data()
-        del d["translation"]
+        del d["subjunctive"]
         self.assertFalse(validate_worksheet_exercises(d))
 
     def test_validate_wrong_count(self):
@@ -110,9 +110,8 @@ class ExerciseItemsTest(TestCase):
         d["future"] = [
             {"prompt": f"p{i} ___ (ver)", "answer": [f"a{i}"]} for i in range(8)
         ]
-        d["translation"] = [
-            {"prompt": f"En {i}. (usar: infinitivo)", "answer": [f"a{i}"]}
-            for i in range(8)
+        d["subjunctive"] = [
+            {"prompt": f"p{i} ___ (ver)", "answer": [f"a{i}"]} for i in range(8)
         ]
         self.assertTrue(validate_worksheet_blank_prompts(d))
         d["past"][0]["prompt"] = "a ___ b ___"

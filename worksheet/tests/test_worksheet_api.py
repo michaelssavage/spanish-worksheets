@@ -39,7 +39,7 @@ class LatestWorksheetViewTest(TestCase):
             user=self.user,
             content_hash=hashlib.sha256(content.encode("utf-8")).hexdigest(),
             content=content,
-            topics=["past", "present", "future", "translation"],
+            topics=["past", "present", "future", "subjunctive"],
             themes=["bugs"],
         )
 

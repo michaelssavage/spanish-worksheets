@@ -52,7 +52,7 @@ def format_worksheet_html(content_json, theme=None):
             ("Past Tense", normalize_to_list(data.get("past", []))),
             ("Present Tense", normalize_to_list(data.get("present", []))),
             ("Future Tense", normalize_to_list(data.get("future", []))),
-            ("Translation", normalize_to_list(data.get("translation", []))),
+            ("Subjunctive Tense", normalize_to_list(data.get("subjunctive", []))),
         ]
 
         # Randomize the order of sections
@@ -149,8 +149,8 @@ def send_worksheet_email(user, content, theme=None):
         plain_text += "\n3. El futuro:\n"
         for i, sentence in enumerate(normalize_to_list(data.get("future", [])), 1):
             plain_text += f"   {i}. {exercise_prompt_for_display(sentence)}\n"
-        plain_text += "\n4. Traducción:\n"
-        for i, sentence in enumerate(normalize_to_list(data.get("translation", [])), 1):
+        plain_text += "\n4. El subjuntivo:\n"
+        for i, sentence in enumerate(normalize_to_list(data.get("subjunctive", [])), 1):
             plain_text += f"   {i}. {exercise_prompt_for_display(sentence)}\n"
     except (json.JSONDecodeError, KeyError, AttributeError):
         plain_text = str(content)

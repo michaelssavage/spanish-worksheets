@@ -10,7 +10,6 @@ SYSTEM_PROMPT = (
     "Use many irregular and subjunctive verbs in conjugation sections.\n\n"
     "Ensure all Spanish is correct and natural. Do not use 'ir a + infinitive' in any form.\n\n"
     'Output: each exercise is a JSON object with two fields: "prompt" (string) and "answer". '
-    'For translation items, "answer" is one full correct Spanish sentence as a string. '
     'For conjugation items (blanks), "answer" is a JSON array of strings. Never omit either field.\n'
     '- For conjugation items (blanks), each string in "answer" is ONLY a correctly conjugated '
     "verb or auxiliary + participle when the tense requires it — never the full sentence.\n"
@@ -54,10 +53,9 @@ Themes:
 Worksheet rules (all sections):
 - Spanish only in answers and in conjugation prompts.
 - Do NOT use obvious mistakes like "yo sabo" or "yo cabo".
-- In past/present/future sections, each \"answer\" is a JSON array of non-empty strings (one or more).
-- In translation, each \"answer\" is exactly one non-empty string, not an array.
+- In past/present/future/subjunctive sections, each \"answer\" is a JSON array of non-empty strings (one or more).
 
-Conjugation sections — past, present, future (8 exercises each as JSON objects):
+Conjugation sections — past, present, future, subjunctive (8 exercises each as JSON objects):
 - Shared: each \"prompt\" contains exactly ONE blank, written as: ___ (infinitive). No more, no fewer.
 - Shared: the blank replaces the verb to conjugate; each string in \"answer\" is ONLY that conjugated form (or auxiliary + participle if the tense requires it), not the full sentence. If multiple conjugations are acceptable, use multiple strings in \"answer\" (never one string with \" | \").
 - Explicit subject: each conjugation \"prompt\" must show who acts — subject pronoun
@@ -73,18 +71,9 @@ Present (distribute across the 8 items):
 Future (distribute across the 8 items):
 - Futuro simple, condicional simple
 
-Translation — English → Spanish (8 exercises as JSON objects):
-- Each item forces production (full translation), not recognition; one main verb or tense choice.
-- When specifying a verb, prefer irregular verbs (ser, ir, estar, tener, hacer, poder, decir,
-  venir, poner, querer, ver, dar, saber, traer, etc.).
-- \"prompt\": one string with (1) a complete English sentence, then (2) exactly ONE constraint
-  in Spanish in parentheses.
-- The constraint is exactly ONE of:
-  a) Required verb: (usar: infinitivo) e.g. (usar: poner)
-  b) Required tense: (usar: nombre del tiempo) e.g. (usar: pretérito indefinido)
-- \"answer\": one full correct Spanish translation string obeying the constraint. Choose one best wording; do not return an array.
-- Do NOT put the Spanish translation in \"prompt\". Do NOT use ___ in translation prompts.
-- Do NOT include more than one constraint per item.
+Subjunctive (distribute across the 8 items):
+- Presente de subjuntivo, imperfecto de subjuntivo (-ra/-se), pretérito pluscuamperfecto de subjuntivo, presente perfecto de subjuntivo
+- Prefer triggers that naturally call for the subjunctive (dudar que, es importante que, ojalá, aunque, para que, sin que, emotion/judgment/wish, etc.).
 
 Fill in the following JSON exactly.
 Do not add, remove, or rename keys.
@@ -121,15 +110,15 @@ Do not add text outside the JSON.
     {{"prompt": "", "answer": [""]}},
     {{"prompt": "", "answer": [""]}}
   ],
-  "translation": [
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}},
-    {{"prompt": "", "answer": ""}}
+  "subjunctive": [
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}},
+    {{"prompt": "", "answer": [""]}}
   ]
 }}
 

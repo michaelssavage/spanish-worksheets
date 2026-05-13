@@ -15,14 +15,10 @@ from worksheet.models import Worksheet
 User = get_user_model()
 
 
-def _section(prefix: str, *, conjugation: bool = True):
+def _section(prefix: str):
     return [
         {
-            "prompt": (
-                f"{prefix}-{i} ___ (hacer)"
-                if conjugation
-                else f"{prefix}-{i} English. (usar: infinitivo)"
-            ),
+            "prompt": f"{prefix}-{i} ___ (hacer)",
             "answer": [f"sol-{prefix}-{i}"],
         }
         for i in range(8)
@@ -33,7 +29,7 @@ _MIN_WORKSHEET = {
     "past": _section("past"),
     "present": _section("present"),
     "future": _section("future"),
-    "translation": _section("tr", conjugation=False),
+    "subjunctive": _section("subj"),
 }
 
 
@@ -54,7 +50,7 @@ def _worksheet_with_past0(prompt: str, answer: str | list[str]):
         "past": _section("past"),
         "present": _section("present"),
         "future": _section("future"),
-        "translation": _section("tr", conjugation=False),
+        "subjunctive": _section("subj"),
     }
     ans = [answer] if isinstance(answer, str) else answer
     data["past"][0] = {"prompt": prompt, "answer": ans}
@@ -193,7 +189,7 @@ class GenerateWorksheetForTest(TestCase):
         self.assertEqual(worksheet.content, expected)
         self.assertEqual(
             worksheet.topics,
-            ["past", "present", "future", "translation"],
+            ["past", "present", "future", "subjunctive"],
         )
 
     @patch("worksheet.services.generate.call_llm")
@@ -304,7 +300,7 @@ class GenerateWorksheetForTest(TestCase):
             "past": [str(i) for i in range(8)],
             "present": [str(i) for i in range(8)],
             "future": [str(i) for i in range(8)],
-            "translation": [str(i) for i in range(8)],
+            "subjunctive": [str(i) for i in range(8)],
         }
         mock_call_llm.return_value = json.dumps(legacy)
 
