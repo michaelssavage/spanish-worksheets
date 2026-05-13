@@ -9,6 +9,22 @@ from worksheet.services.exercise_items import exercise_prompt_for_display
 
 logger = logging.getLogger(__name__)
 
+WORKSHEETS_URL = "https://michaelsavage.ie/worksheets"
+
+
+def _worksheet_link_html() -> str:
+    safe_url = escape(WORKSHEETS_URL)
+    return (
+        f'<p style="margin: 16px 0 24px 0;">'
+        f"Do the worksheets online: "
+        f'<a href="{safe_url}">{safe_url}</a>'
+        f"</p>"
+    )
+
+
+def _worksheet_link_plain() -> str:
+    return f"Do the worksheets online: {WORKSHEETS_URL}\n\n"
+
 
 def normalize_to_list(value):
     """Convert string values to list by splitting on sentence patterns.
@@ -73,6 +89,7 @@ def format_worksheet_html(content_json, theme=None):
         <html>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
             <h2 style="color: #2c3e50;">{escape(theme_display)}</h2>
+            {_worksheet_link_html()}
         """
 
         # Build each section dynamically in randomized order
@@ -140,6 +157,7 @@ def send_worksheet_email(user, content, theme=None):
             data = content
 
         plain_text = "Your Spanish Worksheet\n\n"
+        plain_text += _worksheet_link_plain()
         plain_text += "1. El pasado:\n"
         for i, sentence in enumerate(normalize_to_list(data.get("past", [])), 1):
             plain_text += f"   {i}. {exercise_prompt_for_display(sentence)}\n"
@@ -153,7 +171,7 @@ def send_worksheet_email(user, content, theme=None):
         for i, sentence in enumerate(normalize_to_list(data.get("subjunctive", [])), 1):
             plain_text += f"   {i}. {exercise_prompt_for_display(sentence)}\n"
     except (json.JSONDecodeError, KeyError, AttributeError):
-        plain_text = str(content)
+        plain_text = f"Your Spanish Worksheet\n\n{_worksheet_link_plain()}{content}"
 
     if not settings.MAILGUN_API_KEY or not settings.MAILGUN_DOMAIN:
         raise ValueError(

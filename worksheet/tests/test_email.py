@@ -5,8 +5,9 @@ import json
 import requests
 
 from worksheet.services.email import (
-    normalize_to_list,
+    WORKSHEETS_URL,
     format_worksheet_html,
+    normalize_to_list,
     send_worksheet_email,
 )
 from recipients.models import UserRecipient
@@ -87,6 +88,8 @@ class FormatWorksheetHtmlTest(TestCase):
         self.assertIn("Present Tense", result)
         self.assertIn("Future Tense", result)
         self.assertIn("Subjunctive Tense", result)
+        self.assertIn(WORKSHEETS_URL, result)
+        self.assertIn("Do the worksheets online:", result)
         self.assertIn("Ayer fui al parque.", result)
         self.assertIn("Voy a la escuela.", result)
 
@@ -384,6 +387,8 @@ class SendWorksheetEmailTest(TestCase):
         plain_text = call_args[1]["data"]["text"]
 
         self.assertIn("Your Spanish Worksheet", plain_text)
+        self.assertIn(WORKSHEETS_URL, plain_text)
+        self.assertIn("Do the worksheets online:", plain_text)
         self.assertIn("El pasado:", plain_text)
         self.assertIn("El presente:", plain_text)
         self.assertIn("El futuro:", plain_text)
@@ -469,5 +474,8 @@ class SendWorksheetEmailTest(TestCase):
         mock_post.assert_called_once()
         call_args = mock_post.call_args
         email_data = call_args[1]["data"]
-        # Plain text should be the string representation
-        self.assertEqual(email_data["text"], "Not valid JSON at all")
+        self.assertEqual(
+            email_data["text"],
+            f"Your Spanish Worksheet\n\nDo the worksheets online: "
+            f"{WORKSHEETS_URL}\n\nNot valid JSON at all",
+        )
