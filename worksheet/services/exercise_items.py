@@ -139,6 +139,26 @@ def validate_worksheet_blank_prompts(
     return True
 
 
+def validate_no_blank_prompts(
+    data: dict[str, Any], expected_keys: frozenset[str]
+) -> bool:
+    """
+    True if none of the given sections' prompts contain a blank (e.g. the
+    translation section). Call only after validate_worksheet_exercises passes.
+    """
+    for key in expected_keys:
+        section = data.get(key)
+        if not isinstance(section, list):
+            return False
+        for item in section:
+            if not isinstance(item, dict):
+                return False
+            prompt = item.get("prompt")
+            if not isinstance(prompt, str) or BLANK_MARKER in prompt:
+                return False
+    return True
+
+
 def parse_worksheet_content(
     content: str | dict[str, Any] | None,
 ) -> dict[str, Any] | None:

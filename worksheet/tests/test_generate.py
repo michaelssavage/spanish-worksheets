@@ -10,6 +10,7 @@ from worksheet.services.generate import (
     generate_custom_exercises,
     generate_worksheet_for,
 )
+from worksheet.services.prompts import TRANSLATION_KEY
 from worksheet.models import Worksheet
 
 User = get_user_model()
@@ -28,11 +29,22 @@ def _section(prefix: str):
     ]
 
 
+def _translation_section():
+    return [
+        {
+            "prompt": f"Translate sentence {i}.",
+            "answer": [f"Traduce la frase {i}."],
+        }
+        for i in range(5)
+    ]
+
+
 _MIN_WORKSHEET = {
     "past tenses": _section("past"),
     "present forms": _section("present"),
     "subjunctive": _section("subj"),
     "connectors": _section("conn"),
+    TRANSLATION_KEY: _translation_section(),
 }
 
 
@@ -54,6 +66,7 @@ def _worksheet_with_first_item(prompt: str, answer: str | list[str]):
         "present forms": _section("present"),
         "subjunctive": _section("subj"),
         "connectors": _section("conn"),
+        TRANSLATION_KEY: _translation_section(),
     }
     ans = [answer] if isinstance(answer, str) else answer
     data["past tenses"][0] = {"prompt": prompt, "answer": ans}
@@ -362,6 +375,32 @@ class GenerateWorksheetForTest(TestCase):
             good,
         ]
         mock_get_topics.return_value = ["past", "present", "future"]
+
+        result = generate_worksheet_for(self.user)
+
+        self.assertIsNotNone(result)
+        self.assertEqual(mock_call_llm.call_count, 2)
+        self.assertEqual(
+            Worksheet.objects.get(user=self.user).content,
+            good,
+        )
+
+    @patch("worksheet.services.generate.call_llm")
+    @patch("worksheet.services.generate.get_and_increment_topics")
+    @patch("worksheet.services.generate.get_and_increment_grammar_pools")
+    def test_retries_when_translation_prompt_has_a_stray_blank(
+        self, mock_get_pools, mock_get_topics, mock_call_llm
+    ):
+        """Regenerates when a translation prompt wrongly contains a ___."""
+        mock_get_pools.return_value = TEST_GRAMMAR_POOLS
+        mock_get_topics.return_value = ["past", "present", "future"]
+        bad = json.loads(json.dumps(_MIN_WORKSHEET))
+        bad[TRANSLATION_KEY][0]["prompt"] = "Translate this ___ sentence."
+        good = json.dumps(_MIN_WORKSHEET, ensure_ascii=False)
+        mock_call_llm.side_effect = [
+            json.dumps(bad, ensure_ascii=False),
+            good,
+        ]
 
         result = generate_worksheet_for(self.user)
 

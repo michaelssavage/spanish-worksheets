@@ -8,6 +8,7 @@ from worksheet.services.exercise_items import (
     parse_worksheet_content,
     validate_custom_blank_prompts,
     validate_custom_exercises,
+    validate_no_blank_prompts,
     validate_worksheet_blank_prompts,
     validate_worksheet_exercises,
 )
@@ -108,6 +109,12 @@ class ExerciseItemsTest(TestCase):
         self.assertTrue(validate_worksheet_blank_prompts(d, EXPECTED_KEYS))
         d["subjunctive"][0]["prompt"] = "a ___ b ___"
         self.assertFalse(validate_worksheet_blank_prompts(d, EXPECTED_KEYS))
+
+    def test_validate_no_blank_prompts(self):
+        d = _valid_data()
+        self.assertTrue(validate_no_blank_prompts(d, EXPECTED_KEYS))
+        d["subjunctive"][0]["prompt"] = "has a ___ blank"
+        self.assertFalse(validate_no_blank_prompts(d, EXPECTED_KEYS))
 
     def test_validate_custom_exercises(self):
         self.assertTrue(validate_custom_exercises(_valid_custom_data()))

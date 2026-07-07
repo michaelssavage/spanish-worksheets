@@ -13,9 +13,12 @@ SYSTEM_PROMPT = (
     "Ensure all Spanish is correct and natural. Do not use 'ir a + infinitive' in any form.\n\n"
     'Output: each exercise is a JSON object with two fields: "prompt" (string) and "answer". '
     '"answer" is a JSON array of strings. Never omit either field.\n'
-    '- Each string in "answer" is ONLY the exact word(s) that fill the blank — a correctly '
-    "conjugated verb or auxiliary + participle for verb-based grammar points, or the correct "
-    "preposition/pronoun/connector/word otherwise — never the full sentence.\n"
+    '- For blank-fill sections (every section except "translation"), each string in "answer" is '
+    "ONLY the exact word(s) that fill the blank — a correctly conjugated verb or auxiliary + "
+    "participle for verb-based grammar points, or the correct preposition/pronoun/connector/word "
+    "otherwise — never the full sentence.\n"
+    '- For the "translation" section, there is no blank: "prompt" is a full English sentence and '
+    'each string in "answer" is a full, natural Spanish translation of it.\n'
     "- If several forms are acceptable, put each form as its own string in the array. Do not "
     'join alternatives with " | " inside one string.\n'
     "- When the blank is a conjugated verb, the prompt must include an explicit subject so "
@@ -83,7 +86,20 @@ THEME_POOLS = [
 
 ITEMS_PER_POOL = 5
 
+TRANSLATION_KEY = "translation"
+TRANSLATION_ITEMS = 5
+TRANSLATION_GUIDANCE = (
+    'Each "prompt" is a natural English sentence (no blank) that fits the themes above. Each '
+    'string in "answer" is a complete, natural Spanish translation of that sentence — add '
+    "alternate natural phrasings as extra strings if more than one exists."
+)
+
 _EMPTY_ITEM = '{"prompt": "", "answer": [""]}'
+
+
+def _schema_section(key: str, item_count: int) -> str:
+    items = ",\n    ".join([_EMPTY_ITEM] * item_count)
+    return f'"{key}": [\n    {items}\n  ]'
 
 
 def build_user_prompt(themes: list[str], grammar_pools: list[str]) -> str:
@@ -93,8 +109,8 @@ def build_user_prompt(themes: list[str], grammar_pools: list[str]) -> str:
         for pool in grammar_pools
     )
     schema_sections = ",\n  ".join(
-        f'"{pool}": [\n    ' + ",\n    ".join([_EMPTY_ITEM] * ITEMS_PER_POOL) + "\n  ]"
-        for pool in grammar_pools
+        [_schema_section(pool, ITEMS_PER_POOL) for pool in grammar_pools]
+        + [_schema_section(TRANSLATION_KEY, TRANSLATION_ITEMS)]
     )
 
     prompt = f"""
@@ -104,8 +120,11 @@ Themes:
 Grammar points for this worksheet (one JSON section per point, {ITEMS_PER_POOL} exercises each):
 {pool_instructions}
 
-Worksheet rules (all sections):
-- Spanish only in answers and in prompts.
+Translation section — "{TRANSLATION_KEY}" ({TRANSLATION_ITEMS} exercises):
+- {TRANSLATION_GUIDANCE}
+
+Worksheet rules (grammar-point sections above, NOT "{TRANSLATION_KEY}"):
+- Spanish only in prompts and answers.
 - Do NOT use obvious mistakes like "yo sabo" or "yo cabo".
 - Each \"answer\" is a JSON array of non-empty strings (one or more).
 - Each \"prompt\" contains exactly ONE blank, written as: ___ (with a parenthetical infinitive
@@ -116,6 +135,12 @@ Worksheet rules (all sections):
   multiple strings in \"answer\" (never one string with \" | \").
 - Intentional ambiguity only when grammatical (e.g. acceptable tense/aspect alternates or
   synonymous connectors); then list every acceptable answer in \"answer\".
+
+Translation section rules:
+- "{TRANSLATION_KEY}" prompts are English, contain NO blank, and are unrelated to the grammar
+  points above.
+- "{TRANSLATION_KEY}" answers are Spanish only, each a full sentence translation.
+- Each \"answer\" is a JSON array of non-empty strings (one or more).
 
 Fill in the following JSON exactly.
 Do not add, remove, or rename keys.

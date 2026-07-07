@@ -1,5 +1,9 @@
 from worksheet.models import Worksheet
-from worksheet.services.prompts import build_custom_payload, build_payload
+from worksheet.services.prompts import (
+    TRANSLATION_KEY,
+    build_custom_payload,
+    build_payload,
+)
 from django.conf import settings
 import hashlib
 from openai import OpenAI
@@ -14,6 +18,7 @@ from worksheet.services.exercise_items import (
     normalize_worksheet_answers,
     validate_custom_blank_prompts,
     validate_custom_exercises,
+    validate_no_blank_prompts,
     validate_worksheet_blank_prompts,
     validate_worksheet_exercises,
 )
@@ -23,9 +28,10 @@ logger = logging.getLogger(__name__)
 MAX_BLANK_REGENERATION_ATTEMPTS = 3
 
 BLANK_PROMPT_CORRECTION_USER = (
-    "Some prompts had wrong blanks (missing ___, multiple ___). Fix strictly: "
-    "every exercise prompt in every section must contain exactly one '___'. "
-    'Keep each "answer" as a JSON array of strings. '
+    "Some prompts had wrong blanks (missing ___, multiple ___, or a blank in the "
+    "translation section). Fix strictly: every grammar-section exercise prompt "
+    "must contain exactly one '___'; translation prompts must contain no '___' "
+    'at all. Keep each "answer" as a JSON array of strings. '
     "Return the full worksheet JSON again with the same keys and shape."
 )
 
@@ -195,7 +201,9 @@ def generate_worksheet_for(user, themes=None, grammar_pools=None):
         themes = get_and_increment_topics()
     if grammar_pools is None:
         grammar_pools = get_and_increment_grammar_pools()
-    expected_keys = frozenset(grammar_pools)
+    blank_keys = frozenset(grammar_pools)
+    translation_keys = frozenset({TRANSLATION_KEY})
+    expected_keys = blank_keys | translation_keys
     messages = build_payload(themes, grammar_pools)
 
     content: str | None = None
@@ -234,7 +242,9 @@ def generate_worksheet_for(user, themes=None, grammar_pools=None):
             )
             return None
 
-        if validate_worksheet_blank_prompts(parsed, expected_keys):
+        if validate_worksheet_blank_prompts(
+            parsed, blank_keys
+        ) and validate_no_blank_prompts(parsed, translation_keys):
             content = json.dumps(parsed, ensure_ascii=False)
             break
 
