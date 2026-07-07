@@ -28,9 +28,10 @@ class GrammarRotatorTest(TestCase):
         first = get_and_increment_grammar_pools()
         second = get_and_increment_grammar_pools()
 
-        self.assertEqual(
-            second, GRAMMAR_POOLS[POOLS_PER_WORKSHEET : POOLS_PER_WORKSHEET * 2]
-        )
+        expected_second = [
+            GRAMMAR_POOLS[POOLS_PER_WORKSHEET + i] for i in range(POOLS_PER_WORKSHEET)
+        ]
+        self.assertEqual(second, expected_second)
         self.assertNotEqual(first, second)
 
     def test_wraps_around_end_of_pool_list(self):
