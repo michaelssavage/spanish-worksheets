@@ -8,6 +8,7 @@ import json
 import re
 
 from worksheet.services.topic_rotator import get_and_increment_topics
+from worksheet.services.grammar_rotator import get_and_increment_grammar_pools
 from worksheet.services.exercise_items import (
     normalize_custom_exercise_answers,
     normalize_worksheet_answers,
@@ -23,8 +24,7 @@ MAX_BLANK_REGENERATION_ATTEMPTS = 3
 
 BLANK_PROMPT_CORRECTION_USER = (
     "Some prompts had wrong blanks (missing ___, multiple ___). Fix strictly: "
-    "each past/present/future/subjunctive prompt must contain exactly one "
-    "'___'. "
+    "every exercise prompt in every section must contain exactly one '___'. "
     'Keep each "answer" as a JSON array of strings. '
     "Return the full worksheet JSON again with the same keys and shape."
 )
@@ -184,7 +184,7 @@ def generate_custom_exercises(request_text: str) -> dict | None:
     return None
 
 
-def generate_worksheet_for(user, themes=None):
+def generate_worksheet_for(user, themes=None, grammar_pools=None):
     logger.info(
         "Starting worksheet generation for user: %s (ID: %s)",
         user.email,
@@ -193,7 +193,10 @@ def generate_worksheet_for(user, themes=None):
 
     if themes is None:
         themes = get_and_increment_topics()
-    messages = build_payload(themes)
+    if grammar_pools is None:
+        grammar_pools = get_and_increment_grammar_pools()
+    expected_keys = frozenset(grammar_pools)
+    messages = build_payload(themes, grammar_pools)
 
     content: str | None = None
 
@@ -221,17 +224,17 @@ def generate_worksheet_for(user, themes=None):
             logger.error("JSON invalid after repair attempt")
             return None
 
-        normalize_worksheet_answers(parsed)
+        normalize_worksheet_answers(parsed, expected_keys)
 
-        if not validate_worksheet_exercises(parsed):
+        if not validate_worksheet_exercises(parsed, expected_keys):
             logger.error(
-                "Invalid worksheet structure. Expected four sections "
-                "(past, present, future, subjunctive), each with exactly 8 "
-                'objects {"prompt": "...", "answer": ["..."]}.',
+                "Invalid worksheet structure. Expected sections %s, each with "
+                'exactly 5 objects {"prompt": "...", "answer": ["..."]}.',
+                sorted(expected_keys),
             )
             return None
 
-        if validate_worksheet_blank_prompts(parsed):
+        if validate_worksheet_blank_prompts(parsed, expected_keys):
             content = json.dumps(parsed, ensure_ascii=False)
             break
 
@@ -265,7 +268,7 @@ def generate_worksheet_for(user, themes=None):
         user=user,
         content_hash=h,
         content=content,
-        topics=["past", "present", "future", "subjunctive"],
+        topics=grammar_pools,
         themes=themes,
     )
 

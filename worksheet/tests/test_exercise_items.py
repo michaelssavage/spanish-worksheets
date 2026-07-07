@@ -13,13 +13,13 @@ from worksheet.services.exercise_items import (
 )
 
 
+EXPECTED_KEYS = frozenset({"past tenses", "present forms", "subjunctive", "connectors"})
+
+
 def _valid_data():
-    sec = [{"prompt": f"p{i}", "answer": [f"a{i}"]} for i in range(8)]
     return {
-        "past": sec,
-        "present": sec,
-        "future": sec,
-        "subjunctive": sec,
+        key: [{"prompt": f"p{i}", "answer": [f"a{i}"]} for i in range(5)]
+        for key in EXPECTED_KEYS
     }
 
 
@@ -47,43 +47,43 @@ class ExerciseItemsTest(TestCase):
         self.assertEqual(exercise_prompt_for_display(3), "")
 
     def test_validate_full(self):
-        self.assertTrue(validate_worksheet_exercises(_valid_data()))
+        self.assertTrue(validate_worksheet_exercises(_valid_data(), EXPECTED_KEYS))
 
     def test_validate_wrong_key_set(self):
         d = _valid_data()
         del d["subjunctive"]
-        self.assertFalse(validate_worksheet_exercises(d))
+        self.assertFalse(validate_worksheet_exercises(d, EXPECTED_KEYS))
 
     def test_validate_wrong_count(self):
         d = _valid_data()
-        d["past"] = d["past"][:6]
-        self.assertFalse(validate_worksheet_exercises(d))
+        d["subjunctive"] = d["subjunctive"][:3]
+        self.assertFalse(validate_worksheet_exercises(d, EXPECTED_KEYS))
 
     def test_validate_string_item(self):
         d = _valid_data()
-        d["past"][0] = "nope"
-        self.assertFalse(validate_worksheet_exercises(d))
+        d["subjunctive"][0] = "nope"
+        self.assertFalse(validate_worksheet_exercises(d, EXPECTED_KEYS))
 
     def test_validate_string_answer(self):
         d = _valid_data()
-        d["past"][0]["answer"] = "string-not-allowed"
-        self.assertFalse(validate_worksheet_exercises(d))
+        d["subjunctive"][0]["answer"] = "string-not-allowed"
+        self.assertFalse(validate_worksheet_exercises(d, EXPECTED_KEYS))
 
     def test_validate_empty_answer_list(self):
         d = _valid_data()
-        d["past"][0]["answer"] = []
-        self.assertFalse(validate_worksheet_exercises(d))
+        d["subjunctive"][0]["answer"] = []
+        self.assertFalse(validate_worksheet_exercises(d, EXPECTED_KEYS))
 
     def test_validate_answer_list_with_blank_string(self):
         d = _valid_data()
-        d["past"][0]["answer"] = ["ok", "  "]
-        self.assertFalse(validate_worksheet_exercises(d))
+        d["subjunctive"][0]["answer"] = ["ok", "  "]
+        self.assertFalse(validate_worksheet_exercises(d, EXPECTED_KEYS))
 
     def test_normalize_coerces_string_answer(self):
         d = _valid_data()
-        d["past"][0]["answer"] = "  solo  "
-        normalize_worksheet_answers(d)
-        self.assertEqual(d["past"][0]["answer"], ["solo"])
+        d["subjunctive"][0]["answer"] = "  solo  "
+        normalize_worksheet_answers(d, EXPECTED_KEYS)
+        self.assertEqual(d["subjunctive"][0]["answer"], ["solo"])
 
     def test_parse_content(self):
         import json
@@ -100,22 +100,14 @@ class ExerciseItemsTest(TestCase):
 
     def test_validate_worksheet_blank_prompts(self):
         d = _valid_data()
-        self.assertFalse(validate_worksheet_blank_prompts(d))
-        d["past"] = [
-            {"prompt": f"p{i} ___ (ver)", "answer": [f"a{i}"]} for i in range(8)
-        ]
-        d["present"] = [
-            {"prompt": f"p{i} ___ (ver)", "answer": [f"a{i}"]} for i in range(8)
-        ]
-        d["future"] = [
-            {"prompt": f"p{i} ___ (ver)", "answer": [f"a{i}"]} for i in range(8)
-        ]
-        d["subjunctive"] = [
-            {"prompt": f"p{i} ___ (ver)", "answer": [f"a{i}"]} for i in range(8)
-        ]
-        self.assertTrue(validate_worksheet_blank_prompts(d))
-        d["past"][0]["prompt"] = "a ___ b ___"
-        self.assertFalse(validate_worksheet_blank_prompts(d))
+        self.assertFalse(validate_worksheet_blank_prompts(d, EXPECTED_KEYS))
+        for key in EXPECTED_KEYS:
+            d[key] = [
+                {"prompt": f"p{i} ___ (ver)", "answer": [f"a{i}"]} for i in range(5)
+            ]
+        self.assertTrue(validate_worksheet_blank_prompts(d, EXPECTED_KEYS))
+        d["subjunctive"][0]["prompt"] = "a ___ b ___"
+        self.assertFalse(validate_worksheet_blank_prompts(d, EXPECTED_KEYS))
 
     def test_validate_custom_exercises(self):
         self.assertTrue(validate_custom_exercises(_valid_custom_data()))

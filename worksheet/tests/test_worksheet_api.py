@@ -9,7 +9,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
 from worksheet.models import Worksheet
-from worksheet.tests.test_generate import _MIN_WORKSHEET
+from worksheet.tests.test_generate import TEST_GRAMMAR_POOLS, _MIN_WORKSHEET
 
 User = get_user_model()
 
@@ -39,15 +39,15 @@ class LatestWorksheetViewTest(TestCase):
             user=self.user,
             content_hash=hashlib.sha256(content.encode("utf-8")).hexdigest(),
             content=content,
-            topics=["past", "present", "future", "subjunctive"],
+            topics=TEST_GRAMMAR_POOLS,
             themes=["bugs"],
         )
 
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["themes"], ["bugs"])
-        self.assertIn("past", response.data["content"])
-        first = response.data["content"]["past"][0]
+        self.assertIn("past tenses", response.data["content"])
+        first = response.data["content"]["past tenses"][0]
         self.assertEqual(set(first.keys()), {"prompt", "answer"})
         self.assertIsInstance(first["answer"], list)
         self.assertTrue(first["answer"][0].startswith("sol-"))

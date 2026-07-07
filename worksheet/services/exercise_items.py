@@ -5,10 +5,9 @@ from __future__ import annotations
 import json
 from typing import Any
 
-REQUIRED_SECTION_KEYS = frozenset({"past", "present", "future", "subjunctive"})
-CONJUGATION_SECTION_KEYS = REQUIRED_SECTION_KEYS
 CUSTOM_EXERCISES_KEY = "exercises"
 ITEMS_PER_SECTION = 8
+ITEMS_PER_POOL = 5
 BLANK_MARKER = "___"
 
 
@@ -30,9 +29,11 @@ def exercise_prompt_for_display(item: Any) -> str:
     return ""
 
 
-def normalize_worksheet_answers(data: dict[str, Any]) -> None:
+def normalize_worksheet_answers(
+    data: dict[str, Any], expected_keys: frozenset[str]
+) -> None:
     """Coerce string answer fields to single-element lists (LLM slip tolerance)."""
-    for key in REQUIRED_SECTION_KEYS:
+    for key in expected_keys:
         section = data.get(key)
         if not isinstance(section, list):
             continue
@@ -94,13 +95,15 @@ def validate_custom_blank_prompts(data: dict[str, Any]) -> bool:
     return True
 
 
-def validate_worksheet_exercises(data: dict[str, Any]) -> bool:
-    """True if each section has eight objects with prompt and list-of-string answers."""
-    if set(data.keys()) != REQUIRED_SECTION_KEYS:
+def validate_worksheet_exercises(
+    data: dict[str, Any], expected_keys: frozenset[str]
+) -> bool:
+    """True if each expected section has ITEMS_PER_POOL prompt/list-answer objects."""
+    if set(data.keys()) != set(expected_keys):
         return False
-    for key in REQUIRED_SECTION_KEYS:
+    for key in expected_keys:
         section = data[key]
-        if not isinstance(section, list) or len(section) != ITEMS_PER_SECTION:
+        if not isinstance(section, list) or len(section) != ITEMS_PER_POOL:
             return False
         for item in section:
             if not isinstance(item, dict):
@@ -116,12 +119,14 @@ def validate_worksheet_exercises(data: dict[str, Any]) -> bool:
     return True
 
 
-def validate_worksheet_blank_prompts(data: dict[str, Any]) -> bool:
+def validate_worksheet_blank_prompts(
+    data: dict[str, Any], expected_keys: frozenset[str]
+) -> bool:
     """
     True if every worksheet section prompt has exactly one ___. Call only after
     validate_worksheet_exercises passes.
     """
-    for key in CONJUGATION_SECTION_KEYS:
+    for key in expected_keys:
         section = data.get(key)
         if not isinstance(section, list):
             return False

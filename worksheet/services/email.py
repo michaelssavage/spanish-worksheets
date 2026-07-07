@@ -55,7 +55,7 @@ def normalize_to_list(value):
 
 
 def format_worksheet_html(content_json, theme=None):
-    """Parse JSON content and format it as HTML with 4 numbered lists."""
+    """Parse JSON content and format it as HTML with one numbered list per section."""
     try:
         # Parse the JSON content
         if isinstance(content_json, str):
@@ -63,12 +63,9 @@ def format_worksheet_html(content_json, theme=None):
         else:
             data = content_json
 
-        # Extract the four sections and normalize to lists
+        # Extract each section and normalize to lists
         sections = [
-            ("Past Tense", normalize_to_list(data.get("past", []))),
-            ("Present Tense", normalize_to_list(data.get("present", []))),
-            ("Future Tense", normalize_to_list(data.get("future", []))),
-            ("Subjunctive Tense", normalize_to_list(data.get("subjunctive", []))),
+            (key.title(), normalize_to_list(value)) for key, value in data.items()
         ]
 
         # Randomize the order of sections
@@ -156,20 +153,16 @@ def send_worksheet_email(user, content, theme=None):
         else:
             data = content
 
+        section_blocks = []
+        for section_num, (key, value) in enumerate(data.items(), 1):
+            lines = [f"{section_num}. {key.title()}:"]
+            for i, sentence in enumerate(normalize_to_list(value), 1):
+                lines.append(f"   {i}. {exercise_prompt_for_display(sentence)}")
+            section_blocks.append("\n".join(lines))
+
         plain_text = "Your Spanish Worksheet\n\n"
         plain_text += _worksheet_link_plain()
-        plain_text += "1. El pasado:\n"
-        for i, sentence in enumerate(normalize_to_list(data.get("past", [])), 1):
-            plain_text += f"   {i}. {exercise_prompt_for_display(sentence)}\n"
-        plain_text += "\n2. El presente:\n"
-        for i, sentence in enumerate(normalize_to_list(data.get("present", [])), 1):
-            plain_text += f"   {i}. {exercise_prompt_for_display(sentence)}\n"
-        plain_text += "\n3. El futuro:\n"
-        for i, sentence in enumerate(normalize_to_list(data.get("future", [])), 1):
-            plain_text += f"   {i}. {exercise_prompt_for_display(sentence)}\n"
-        plain_text += "\n4. El subjuntivo:\n"
-        for i, sentence in enumerate(normalize_to_list(data.get("subjunctive", [])), 1):
-            plain_text += f"   {i}. {exercise_prompt_for_display(sentence)}\n"
+        plain_text += "\n\n".join(section_blocks) + "\n"
     except (json.JSONDecodeError, KeyError, AttributeError):
         plain_text = f"Your Spanish Worksheet\n\n{_worksheet_link_plain()}{content}"
 

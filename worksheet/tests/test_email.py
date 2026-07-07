@@ -75,19 +75,19 @@ class FormatWorksheetHtmlTest(TestCase):
         """Test formatting valid JSON string"""
         content = json.dumps(
             {
-                "past": ["Ayer fui al parque.", "Comí pizza."],
-                "present": ["Voy a la escuela.", "Estudio español."],
-                "future": ["Mañana viajaré.", "Compraré un coche."],
+                "past tenses": ["Ayer fui al parque.", "Comí pizza."],
+                "present forms": ["Voy a la escuela.", "Estudio español."],
                 "subjunctive": ["palabra", "frase"],
+                "connectors": ["sin embargo", "por lo tanto"],
             }
         )
         result = format_worksheet_html(content)
 
         self.assertIn("<html>", result)
-        self.assertIn("Past Tense", result)
-        self.assertIn("Present Tense", result)
-        self.assertIn("Future Tense", result)
-        self.assertIn("Subjunctive Tense", result)
+        self.assertIn("Past Tenses", result)
+        self.assertIn("Present Forms", result)
+        self.assertIn("Subjunctive", result)
+        self.assertIn("Connectors", result)
         self.assertIn(WORKSHEETS_URL, result)
         self.assertIn("Do the worksheets online:", result)
         self.assertIn("Ayer fui al parque.", result)
@@ -110,18 +110,15 @@ class FormatWorksheetHtmlTest(TestCase):
         self.assertIn("word", result)
 
     def test_missing_sections(self):
-        """Test handling of missing sections in JSON"""
-        content = {"past": ["Only past tense"]}
+        """Sections not present in the JSON simply don't render."""
+        content = {"past tenses": ["Only past tense"]}
         result = format_worksheet_html(content)
 
-        # Should still generate HTML structure
         self.assertIn("<html>", result)
-        self.assertIn("Past Tense", result)
+        self.assertIn("Past Tenses", result)
         self.assertIn("Only past tense", result)
-        # Other sections should be empty but structure should exist
-        self.assertIn("Present Tense", result)
-        self.assertIn("Future Tense", result)
-        self.assertIn("Subjunctive Tense", result)
+        self.assertNotIn("Present Forms", result)
+        self.assertNotIn("Subjunctive", result)
 
     def test_string_values_normalization(self):
         """Test that string values are normalized to lists"""
@@ -171,10 +168,9 @@ class FormatWorksheetHtmlTest(TestCase):
         content = {}
         result = format_worksheet_html(content)
 
-        # Should still generate valid HTML structure
+        # Should still generate valid HTML structure, with no sections
         self.assertIn("<html>", result)
-        self.assertIn("Past Tense", result)
-        self.assertIn("Present Tense", result)
+        self.assertIn("</html>", result)
 
     def test_malformed_json_string(self):
         """Test handling of malformed JSON string"""
@@ -376,10 +372,10 @@ class SendWorksheetEmailTest(TestCase):
         mock_post.return_value = mock_response
 
         content = {
-            "past": ["Ayer fui al parque.", "Comí pizza."],
-            "present": ["Voy a la escuela."],
-            "future": ["Mañana viajaré."],
+            "past tenses": ["Ayer fui al parque.", "Comí pizza."],
+            "present forms": ["Voy a la escuela."],
             "subjunctive": ["palabra", "frase"],
+            "connectors": ["sin embargo"],
         }
         send_worksheet_email(self.user, content)
 
@@ -389,10 +385,10 @@ class SendWorksheetEmailTest(TestCase):
         self.assertIn("Your Spanish Worksheet", plain_text)
         self.assertIn(WORKSHEETS_URL, plain_text)
         self.assertIn("Do the worksheets online:", plain_text)
-        self.assertIn("El pasado:", plain_text)
-        self.assertIn("El presente:", plain_text)
-        self.assertIn("El futuro:", plain_text)
-        self.assertIn("El subjuntivo:", plain_text)
+        self.assertIn("1. Past Tenses:", plain_text)
+        self.assertIn("2. Present Forms:", plain_text)
+        self.assertIn("3. Subjunctive:", plain_text)
+        self.assertIn("4. Connectors:", plain_text)
         self.assertIn("Ayer fui al parque.", plain_text)
         self.assertIn("Comí pizza.", plain_text)
 

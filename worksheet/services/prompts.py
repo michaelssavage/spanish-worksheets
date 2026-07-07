@@ -1,125 +1,128 @@
 # flake8: noqa
 import logging
 
+from worksheet.services.grammar_pools import GRAMMAR_POOL_GUIDANCE
+
 logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = (
     "You generate Spanish-learning worksheets for intermediate and advanced learners. "
     "Use natural, idiomatic Spanish in realistic contexts, especially work and technology.\n\n"
     "avoid vague sentences. Avoid leaning on common regular verbs like hablar, trabajar, necesitar. "
-    "Use many irregular and subjunctive verbs in conjugation sections.\n\n"
+    "Use many irregular and subjunctive verbs in verb-based sections.\n\n"
     "Ensure all Spanish is correct and natural. Do not use 'ir a + infinitive' in any form.\n\n"
     'Output: each exercise is a JSON object with two fields: "prompt" (string) and "answer". '
-    'For conjugation items (blanks), "answer" is a JSON array of strings. Never omit either field.\n'
-    '- For conjugation items (blanks), each string in "answer" is ONLY a correctly conjugated '
-    "verb or auxiliary + participle when the tense requires it — never the full sentence.\n"
-    "- For conjugation, if several forms are acceptable, put each form as its own string in the array. Do not "
+    '"answer" is a JSON array of strings. Never omit either field.\n'
+    '- Each string in "answer" is ONLY the exact word(s) that fill the blank — a correctly '
+    "conjugated verb or auxiliary + participle for verb-based grammar points, or the correct "
+    "preposition/pronoun/connector/word otherwise — never the full sentence.\n"
+    "- If several forms are acceptable, put each form as its own string in the array. Do not "
     'join alternatives with " | " inside one string.\n'
-    "- Conjugation prompts must include an explicit subject so person and number are clear: "
-    "either a subject pronoun (Yo, Tú, Él, Ella, Usted, Nosotros/as, Vosotros/as, Ellos/as, "
-    "Ustedes) or a noun phrase that fixes person and number (e.g. Mi jefa, Los clientes). "
-    "Do not omit the subject in a way that leaves who conjugates unclear.\n"
+    "- When the blank is a conjugated verb, the prompt must include an explicit subject so "
+    "person and number are clear: either a subject pronoun (Yo, Tú, Él, Ella, Usted, "
+    "Nosotros/as, Vosotros/as, Ellos/as, Ustedes) or a noun phrase that fixes person and number "
+    "(e.g. Mi jefa, Los clientes). Do not omit the subject in a way that leaves who conjugates "
+    "unclear.\n"
     "- If ambiguity is intentional, it must be grammatical only (e.g. acceptable tense/aspect "
-    "alternates), not from a missing subject; include every acceptable conjugation as a "
-    'separate string in "answer".\n\n'
+    "alternates), not from a missing subject; include every acceptable answer as a separate "
+    'string in "answer".\n\n'
     "Follow the user's JSON schema and section instructions exactly. Output valid JSON only when asked."
 )
 
 THEME_POOLS = [
+    # Daily life
+    ["la rutina diaria", "las tareas de casa", "los horarios"],
+    ["la comida", "cocinar", "hacer la compra"],
+    ["el transporte", "el tráfico", "los viajes en tren"],
+    ["el tiempo", "las estaciones", "la ropa"],
+    # Social life
+    ["la familia", "las reuniones familiares", "los recuerdos"],
+    ["los amigos", "quedar", "hacer planes"],
+    ["cumpleaños", "fiestas", "regalos"],
+    ["las vacaciones", "los hoteles", "las excursiones"],
+    # Work
     ["reuniones", "decisiones de equipo", "conflictos laborales"],
-    ["plazos", "entregas urgentes", "errores en proyectos"],
-    ["bugs", "debugging", "errores en producción"],
-    ["deportes", "partidos", "juegos en equipo"],
-    ["revisiones de código", "pull requests", "comentarios"],
-    ["finanzas personales", "gastos imprevistos", "deudas"],
-    ["mensajes malinterpretados", "falta de comunicación", "urgencias"],
     ["clientes", "negociaciones", "contratos"],
-    ["problemas de salud", "cansancio extremo", "falta de sueño"],
-    ["pagos", "facturas", "retrasos"],
-    ["errores graves", "decisiones difíciles", "consecuencias"],
-    ["el tiempo libre", "planes cancelados a última hora", "quedadas improvisadas"],
-    ["cumpleaños en la oficina", "pasteles traídos de casa", "vaquinas para regalos"],
-    ["la resaca del lunes", "el viernes por la tarde", "sobrevivir hasta las 6"],
+    ["plazos", "prioridades", "cambios de última hora"],
+    ["entrevistas de trabajo", "compañeros", "teletrabajo"],
+    # Software
+    ["bugs", "debugging", "errores en producción"],
+    ["revisiones de código", "pull requests", "comentarios"],
+    ["despliegues", "pruebas", "automatización"],
+    # Health
+    ["el médico", "los síntomas", "los medicamentos"],
+    ["el deporte", "el ejercicio", "las lesiones"],
+    ["el sueño", "el estrés", "el cansancio"],
+    # Money
+    ["finanzas personales", "ahorrar", "gastos imprevistos"],
+    ["el banco", "pagos", "facturas"],
+    ["compras", "ofertas", "devoluciones"],
+    # Communication
+    ["mensajes malinterpretados", "malentendidos", "discusiones"],
+    ["dar consejos", "pedir ayuda", "explicar un problema"],
+    # Decisions
+    ["errores", "decisiones difíciles", "consecuencias"],
+    ["riesgos", "oportunidades", "cambios importantes"],
+    # Free time
+    ["películas", "series", "libros"],
+    ["videojuegos", "juegos de mesa", "aficiones"],
+    ["música", "conciertos", "festivales"],
+    # Travel
+    ["el aeropuerto", "el hotel", "hacer turismo"],
+    ["viajes por carretera", "mapas", "imprevistos"],
+    # Home
+    ["la casa", "las reparaciones", "los vecinos"],
+    ["mudanzas", "decoración", "muebles"],
+    # Shopping
+    ["la ropa", "las tallas", "devolver un producto"],
+    ["el supermercado", "la lista de la compra", "las ofertas"],
+    # Education
+    ["aprender idiomas", "los exámenes", "los profesores"],
 ]
 
 
-def build_user_prompt(themes: list[str]) -> str:
+ITEMS_PER_POOL = 5
+
+_EMPTY_ITEM = '{"prompt": "", "answer": [""]}'
+
+
+def build_user_prompt(themes: list[str], grammar_pools: list[str]) -> str:
     theme_block = ", ".join(themes)
+    pool_instructions = "\n\n".join(
+        f'"{pool}" ({ITEMS_PER_POOL} exercises) — {GRAMMAR_POOL_GUIDANCE[pool]}'
+        for pool in grammar_pools
+    )
+    schema_sections = ",\n  ".join(
+        f'"{pool}": [\n    ' + ",\n    ".join([_EMPTY_ITEM] * ITEMS_PER_POOL) + "\n  ]"
+        for pool in grammar_pools
+    )
 
     prompt = f"""
 Themes:
 {theme_block}
 
+Grammar points for this worksheet (one JSON section per point, {ITEMS_PER_POOL} exercises each):
+{pool_instructions}
+
 Worksheet rules (all sections):
-- Spanish only in answers and in conjugation prompts.
+- Spanish only in answers and in prompts.
 - Do NOT use obvious mistakes like "yo sabo" or "yo cabo".
-- In past/present/future/subjunctive sections, each \"answer\" is a JSON array of non-empty strings (one or more).
-
-Conjugation sections — past, present, future, subjunctive (8 exercises each as JSON objects):
-- Shared: each \"prompt\" contains exactly ONE blank, written as: ___ (infinitive). No more, no fewer.
-- Shared: the blank replaces the verb to conjugate; each string in \"answer\" is ONLY that conjugated form (or auxiliary + participle if the tense requires it), not the full sentence. If multiple conjugations are acceptable, use multiple strings in \"answer\" (never one string with \" | \").
-- Explicit subject: each conjugation \"prompt\" must show who acts — subject pronoun
-  (Yo, Tú, Él, …) or a noun phrase that fixes person and number. Do not drop the subject in a way that makes the expected conjugation ambiguous.
-- Intentional ambiguity only when grammatical (e.g. tense/aspect alternates); then list every acceptable form in \"answer\".
-
-Past (distribute across the 8 items):
-- Pretérito indefinido, pretérito imperfecto, pretérito perfecto, pluscuamperfecto
-
-Present (distribute across the 8 items):
-- Presente de indicativo, presente perfecto, presente progresivo
-
-Future (distribute across the 8 items):
-- Futuro simple, condicional simple
-
-Subjunctive (distribute across the 8 items):
-- Presente de subjuntivo, imperfecto de subjuntivo (-ra/-se), pretérito pluscuamperfecto de subjuntivo, presente perfecto de subjuntivo
-- Prefer triggers that naturally call for the subjunctive (dudar que, es importante que, ojalá, aunque, para que, sin que, emotion/judgment/wish, etc.).
+- Each \"answer\" is a JSON array of non-empty strings (one or more).
+- Each \"prompt\" contains exactly ONE blank, written as: ___ (with a parenthetical infinitive
+  hint when the blank is a verb, e.g. ___ (hacer); no parenthetical when it isn't). No more, no
+  fewer than one blank.
+- The blank replaces only the missing word(s) described above for that section; each string in
+  \"answer\" is ONLY those word(s), not the full sentence. If multiple answers are acceptable, use
+  multiple strings in \"answer\" (never one string with \" | \").
+- Intentional ambiguity only when grammatical (e.g. acceptable tense/aspect alternates or
+  synonymous connectors); then list every acceptable answer in \"answer\".
 
 Fill in the following JSON exactly.
 Do not add, remove, or rename keys.
 Do not add text outside the JSON.
 
 {{
-  "past": [
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}}
-  ],
-  "present": [
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}}
-  ],
-  "future": [
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}}
-  ],
-  "subjunctive": [
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}},
-    {{"prompt": "", "answer": [""]}}
-  ]
+  {schema_sections}
 }}
 
 Output valid JSON only.
@@ -128,12 +131,14 @@ Output valid JSON only.
     return prompt
 
 
-def build_payload(themes: list[str]) -> list[dict]:
-    logger.debug("Building payload with themes: %s", themes)
+def build_payload(themes: list[str], grammar_pools: list[str]) -> list[dict]:
+    logger.debug(
+        "Building payload with themes: %s, grammar_pools: %s", themes, grammar_pools
+    )
 
     payload = [
         {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": build_user_prompt(themes)},
+        {"role": "user", "content": build_user_prompt(themes, grammar_pools)},
     ]
 
     logger.info("Payload built successfully")
