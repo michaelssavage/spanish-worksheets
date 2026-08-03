@@ -94,7 +94,7 @@ def call_llm(messages: list[dict]) -> str:
     )
 
     response = client.chat.completions.create(
-        model="deepseek-chat",
+        model="deepseek-v4-flash",
         messages=messages,
         temperature=0.7,
     )

@@ -17,8 +17,12 @@ SYSTEM_PROMPT = (
     "ONLY the exact word(s) that fill the blank — a correctly conjugated verb or auxiliary + "
     "participle for verb-based grammar points, or the correct preposition/pronoun/connector/word "
     "otherwise — never the full sentence.\n"
-    '- For the "translation" section, there is no blank: "prompt" is a full English sentence and '
-    'each string in "answer" is a full, natural Spanish translation of it.\n'
+    '- For the "translation" section, there is no blank: "prompt" is a short English clause — a '
+    'subject with a conjugated verb (e.g. "He arrived"), or a subject with a conjugated verb plus '
+    'one other word or short complement (e.g. "We left the card", "He began to feel tired") — and '
+    'each string in "answer" is its natural Spanish translation (e.g. "Llegó", "Dejamos la '
+    'tarjeta", "Empezó a sentirse cansado"), matching the same short length. Never a longer, '
+    "multi-clause sentence.\n"
     "- If several forms are acceptable, put each form as its own string in the array. Do not "
     'join alternatives with " | " inside one string.\n'
     "- When the blank is a conjugated verb, the prompt must include an explicit subject so "
@@ -89,9 +93,12 @@ ITEMS_PER_POOL = 5
 TRANSLATION_KEY = "translation"
 TRANSLATION_ITEMS = 5
 TRANSLATION_GUIDANCE = (
-    'Each "prompt" is a natural English sentence (no blank) that fits the themes above. Each '
-    'string in "answer" is a complete, natural Spanish translation of that sentence — add '
-    "alternate natural phrasings as extra strings if more than one exists."
+    'Each "prompt" is a short English clause (no blank) — a subject with a conjugated verb (e.g. '
+    '"He arrived"), or a subject with a conjugated verb plus one other word or short complement '
+    '(e.g. "We left the card", "He began to feel tired") — related to the themes above. Each '
+    'string in "answer" is its natural Spanish translation (e.g. "Llegó", "Dejamos la tarjeta", '
+    '"Empezó a sentirse cansado") — add alternate natural phrasings as extra strings if more than '
+    "one exists. Never a longer, multi-clause sentence."
 )
 
 _EMPTY_ITEM = '{"prompt": "", "answer": [""]}'
@@ -137,9 +144,12 @@ Worksheet rules (grammar-point sections above, NOT "{TRANSLATION_KEY}"):
   synonymous connectors); then list every acceptable answer in \"answer\".
 
 Translation section rules:
-- "{TRANSLATION_KEY}" prompts are English, contain NO blank, and are unrelated to the grammar
-  points above.
-- "{TRANSLATION_KEY}" answers are Spanish only, each a full sentence translation.
+- "{TRANSLATION_KEY}" prompts are short English clauses — a subject with a conjugated verb (e.g.
+  "He arrived"), or a subject with a conjugated verb plus one other word or short complement (e.g.
+  "We left the card", "He began to feel tired") — contain NO blank, and are unrelated to the
+  grammar points above. Never a longer, multi-clause sentence.
+- "{TRANSLATION_KEY}" answers are Spanish only, each a short clause translation matching the same
+  length as the prompt.
 - Each \"answer\" is a JSON array of non-empty strings (one or more).
 
 Fill in the following JSON exactly.
