@@ -1,6 +1,6 @@
 # Spanish Worksheets
 
-**Homework straight to your inbox.**
+**Homework straight to my inbox.**
 
 A Django app deployed to Railway with a Github Action CRON job. The CRON runs every second day and generates Spanish homework via DeepSeek LLM, and then sends an email of the homework via Mailgun's API. x
 
