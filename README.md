@@ -25,9 +25,11 @@ poetry run python manage.py rqworker default
 Use the same repo for **two** Railway services, both with `DATABASE_URL`, `REDIS_URL`, and the same env as the web app:
 
 - **Web:** `./start.sh`
-- **Worker:** `poetry run python manage.py rqworker default`
+- **Worker:** `.venv/bin/python manage.py rqworker default`
 
 Do not start an RQ worker from the web service. Without the worker service, jobs accumulate in Redis and emails are never sent, while HTTP clients may still see `202 Accepted`.
+
+Use `.venv/bin/python`, not `poetry run python`, for both services' runtime commands. Railpack's deploy image is a minimal Debian base that only guarantees the app's own built venv (`.venv/`) is present — it does not guarantee a working system Python for Poetry's own `mise`-managed venv, so `poetry run` at runtime can fail with a `Fatal Python error: init_fs_encoding` / `No module named 'encodings'` crash before your code ever runs, even though the exact same command works fine locally and during the build.
 
 ### creating a new subsection
 
