@@ -42,4 +42,4 @@ Do not start an RQ worker from the web service. Without the worker service, jobs
 
 ## Verifying Email Provider
 
-I used Mailgun for sending emails. I had to edit the DNS records for wherever your site is hosted. That was Netlify in my case.
+I used Mailgun for sending emails. I had to edit the DNS records for wherever your site is hosted which was Netlify in my case.
