@@ -10,9 +10,9 @@ for each pool.
 GRAMMAR_POOLS = [
     "past tenses",
     "present forms",
+    "future tenses",
     "subjunctive",
     "por vs para",
-    "prepositions",
     "irregular verbs",
 ]
 
@@ -27,29 +27,25 @@ GRAMMAR_POOL_GUIDANCE = {
         "perfecto, presente progresivo. Answer is the conjugated verb form "
         "(or auxiliary + participle) only."
     ),
+    "future tenses": (
+        "Distribute across the 5 items: futuro simple, futuro perfecto. "
+        "Answer is the conjugated verb form (or auxiliary + participle) "
+        "only."
+    ),
     "subjunctive": (
         "Distribute across the 5 items: presente de subjuntivo, imperfecto "
         "de subjuntivo (-ra/-se), pretérito pluscuamperfecto de subjuntivo, "
         "presente perfecto de subjuntivo. Prefer triggers that naturally "
-        "call for the subjunctive (dudar que, es importante que, ojalá, "
-        "aunque, para que, sin que, emotion/judgment/wish, etc.). Answer is "
-        "the conjugated verb form only."
+        "call for the subjunctive. Answer is the conjugated verb form only."
     ),
     "por vs para": (
         "Each blank is exactly 'por' or 'para', whichever fits the context "
         "(cause, purpose, exchange, duration, destination, deadline, etc.). "
         "Answer is 'por' or 'para' only — not a full phrase."
     ),
-    "prepositions": (
-        "Each blank is the single correct preposition for the context (a, "
-        "de, en, con, sobre, entre, hacia, desde, hasta, etc.), especially "
-        "verb + preposition combinations learners often get wrong. Answer "
-        "is the preposition only."
-    ),
     "irregular verbs": (
         "Each blank is the correctly conjugated form of a common irregular "
-        "verb (ser, estar, ir, tener, hacer, poder, querer, decir, venir, "
-        "poner, saber, dar, etc.), in whichever tense/mood fits the "
-        "context. Answer is the conjugated verb form only."
+        "verb, in whichever tense/mood fits the context. Answer is the "
+        "conjugated verb form only."
     ),
 }
