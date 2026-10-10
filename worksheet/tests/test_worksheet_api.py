@@ -52,6 +52,55 @@ class LatestWorksheetViewTest(TestCase):
         self.assertIsInstance(first["answer"], list)
         self.assertTrue(first["answer"][0].startswith("sol-"))
 
+    def _create(self, language, prefix):
+        content = json.dumps({prefix: _MIN_WORKSHEET["past tenses"]})
+        return Worksheet.objects.create(
+            user=self.user,
+            language=language,
+            content_hash=hashlib.sha256(content.encode("utf-8")).hexdigest(),
+            content=content,
+            themes=[prefix],
+        )
+
+    def test_defaults_to_spanish(self):
+        self._create("es", "es-theme")
+        self._create("ca", "ca-theme")
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["language"], "es")
+        self.assertEqual(response.data["themes"], ["es-theme"])
+
+    def test_returns_catalan_worksheet(self):
+        self._create("es", "es-theme")
+        self._create("ca", "ca-theme")
+
+        response = self.client.get(self.url, {"language": "ca"})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["language"], "ca")
+        self.assertEqual(response.data["themes"], ["ca-theme"])
+
+    def test_404_when_no_worksheet_for_language(self):
+        self._create("es", "es-theme")
+
+        response = self.client.get(self.url, {"language": "ca"})
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_rejects_unknown_language(self):
+        response = self.client.get(self.url, {"language": "fr"})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_500_when_stored_content_is_invalid(self):
+        Worksheet.objects.create(user=self.user, content_hash="bad", content="not json")
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class GenerateCustomWorksheetViewTest(TestCase):
     def setUp(self):
@@ -108,7 +157,22 @@ class GenerateCustomWorksheetViewTest(TestCase):
         self.assertEqual(response.data["content"], content)
         self.assertEqual(len(response.data["content"]["exercises"]), 8)
         self.assertEqual(Worksheet.objects.count(), 0)
-        mock_generate.assert_called_once_with("Subjunctive tense about birthdays")
+        mock_generate.assert_called_once_with("Subjunctive tense about birthdays", "es")
+        self.assertEqual(response.data["language"], "es")
+
+    @patch("worksheet.views.generate_custom_exercises")
+    def test_passes_catalan_language_through(self, mock_generate):
+        mock_generate.return_value = {"exercises": []}
+
+        response = self.client.post(
+            self.url,
+            {"request": "Subjunctive tense about birthdays", "language": "ca"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["language"], "ca")
+        mock_generate.assert_called_once_with("Subjunctive tense about birthdays", "ca")
 
     @patch("worksheet.views.generate_custom_exercises")
     def test_returns_502_when_generation_fails(self, mock_generate):
@@ -122,3 +186,31 @@ class GenerateCustomWorksheetViewTest(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
         self.assertEqual(response.data, {"error": "Custom worksheet generation failed"})
+
+
+class GenerateAndSendWorksheetViewTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            email="delivery@example.com", password="testpass123"
+        )
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token.key}")
+
+    @patch("worksheet.views.enqueue")
+    def test_enqueues_one_job_per_language_with_shared_topic(self, mock_enqueue):
+        from worksheet.jobs import generate_worksheet_job
+        from worksheet.services.themes import CATALAN_THEME_POOLS, SPANISH_THEME_POOLS
+
+        mock_enqueue.side_effect = lambda *args: type("Job", (), {"id": args[2]})()
+
+        response = self.client.post("/api/worksheet/delivery/")
+
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(response.data["jobs"], {"es": "es", "ca": "ca"})
+        mock_enqueue.assert_any_call(
+            generate_worksheet_job, self.user.id, "es", SPANISH_THEME_POOLS[0]
+        )
+        mock_enqueue.assert_any_call(
+            generate_worksheet_job, self.user.id, "ca", CATALAN_THEME_POOLS[0]
+        )

@@ -11,7 +11,8 @@ import logging
 import json
 import re
 
-from worksheet.services.topic_rotator import get_and_increment_topics
+from worksheet.services.languages import get_language
+from worksheet.services.topic_rotator import get_and_increment_topic_index, themes_for
 from worksheet.services.grammar_rotator import get_and_increment_grammar_pools
 from worksheet.services.exercise_items import (
     normalize_custom_exercise_answers,
@@ -128,10 +129,10 @@ def fix_json_structure_once(broken_content: str) -> str | None:
     return extract_json_from_response(repaired)
 
 
-def generate_custom_exercises(request_text: str) -> dict | None:
-    logger.info("Starting custom exercise generation")
+def generate_custom_exercises(request_text: str, language: str = "es") -> dict | None:
+    logger.info("Starting %s custom exercise generation", language)
 
-    messages = build_custom_payload(request_text)
+    messages = build_custom_payload(get_language(language), request_text)
 
     for attempt in range(MAX_BLANK_REGENERATION_ATTEMPTS):
         logger.info(
@@ -190,21 +191,23 @@ def generate_custom_exercises(request_text: str) -> dict | None:
     return None
 
 
-def generate_worksheet_for(user, themes=None, grammar_pools=None):
+def generate_worksheet_for(user, themes=None, grammar_pools=None, language="es"):
+    lang = get_language(language)
     logger.info(
-        "Starting worksheet generation for user: %s (ID: %s)",
+        "Starting %s worksheet generation for user: %s (ID: %s)",
+        lang.code,
         user.email,
         user.id,
     )
 
     if themes is None:
-        themes = get_and_increment_topics()
+        themes = themes_for(lang, get_and_increment_topic_index())
     if grammar_pools is None:
-        grammar_pools = get_and_increment_grammar_pools()
+        grammar_pools = get_and_increment_grammar_pools(lang)
     blank_keys = frozenset(grammar_pools)
     translation_keys = frozenset({TRANSLATION_KEY})
     expected_keys = blank_keys | translation_keys
-    messages = build_payload(themes, grammar_pools)
+    messages = build_payload(lang, themes, grammar_pools)
 
     content: str | None = None
 
@@ -273,14 +276,15 @@ def generate_worksheet_for(user, themes=None, grammar_pools=None):
         logger.warning("Duplicate worksheet detected, aborting save")
         return None
 
-    Worksheet.objects.filter(user=user).delete()
+    Worksheet.objects.filter(user=user, language=lang.code).delete()
     Worksheet.objects.create(
         user=user,
+        language=lang.code,
         content_hash=h,
         content=content,
         topics=grammar_pools,
         themes=themes,
     )
 
-    logger.info("Worksheet saved successfully for user: %s", user.email)
+    logger.info("%s worksheet saved successfully for user: %s", lang.code, user.email)
     return content

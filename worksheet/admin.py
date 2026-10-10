@@ -4,14 +4,21 @@ from .models import Worksheet, Config
 
 @admin.register(Worksheet)
 class WorksheetAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "created_at", "content_hash_short", "topics")
-    list_filter = ("created_at", "user")
+    list_display = (
+        "id",
+        "user",
+        "language",
+        "created_at",
+        "content_hash_short",
+        "topics",
+    )
+    list_filter = ("language", "created_at", "user")
     search_fields = ("user__email", "content_hash")
-    readonly_fields = ("created_at", "content_hash", "topics", "user")
+    readonly_fields = ("created_at", "content_hash", "topics", "user", "language")
     ordering = ("-created_at",)
 
     fieldsets = (
-        ("Basic Information", {"fields": ("user", "created_at")}),
+        ("Basic Information", {"fields": ("user", "language", "created_at")}),
         ("Content", {"fields": ("content_hash", "topics")}),
     )
 

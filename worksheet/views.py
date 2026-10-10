@@ -5,6 +5,8 @@ from worksheet.serializers import (
     GenerateLLMContentRequestSerializer,
     GenerateLLMContentResponseSerializer,
     GenerateWorksheetResponseSerializer,
+    WorksheetLanguageQuerySerializer,
+    WorksheetSerializer,
 )
 from django_rq import enqueue, get_queue
 from rq.job import Job
@@ -15,9 +17,11 @@ from worksheet.services.generate import (
 )
 from worksheet.services.email import send_worksheet_email
 from worksheet.models import Worksheet
-from worksheet.services.exercise_items import parse_worksheet_content
+from worksheet.services.languages import LANGUAGES
+from worksheet.services.topic_rotator import get_and_increment_topic_index, themes_for
+from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.generics import GenericAPIView
+from rest_framework.generics import GenericAPIView, RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework import status
 import logging
@@ -37,7 +41,8 @@ class GenerateCustomWorksheetView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         request_text = serializer.validated_data["request"]
-        content = generate_custom_exercises(request_text)
+        language = serializer.validated_data["language"]
+        content = generate_custom_exercises(request_text, language)
 
         if content is None:
             logger.warning(
@@ -48,7 +53,11 @@ class GenerateCustomWorksheetView(GenericAPIView):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
-        return Response({"request": request_text, "content": content})
+        return Response(
+            self.response_serializer(
+                {"request": request_text, "language": language, "content": content}
+            ).data
+        )
 
 
 # Persists worksheet for the user; does not send email (see GenerateAndSendWorksheetView / job).
@@ -65,8 +74,11 @@ class GenerateLLMContentView(GenericAPIView):
 
         themes = serializer.validated_data.get("themes", [])
         themes_arg = themes if themes else None
+        language = serializer.validated_data["language"]
 
-        content = generate_worksheet_for(request.user, themes=themes_arg)
+        content = generate_worksheet_for(
+            request.user, themes=themes_arg, language=language
+        )
 
         if content is None:
             logger.warning(
@@ -91,12 +103,23 @@ class GenerateAndSendWorksheetView(GenericAPIView):
     def post(self, request):
         logger.info(f"generate_worksheet called by user: {request.user.email}")
 
-        job = enqueue(generate_worksheet_job, request.user.id)
+        # One job per language so a slow or failed language can't block the other.
+        # The topic index is advanced once here so every language shares themes.
+        topic_index = get_and_increment_topic_index()
+        jobs = {
+            code: enqueue(
+                generate_worksheet_job,
+                request.user.id,
+                code,
+                themes_for(lang, topic_index),
+            ).id
+            for code, lang in LANGUAGES.items()
+        }
 
         return Response(
             {
                 "message": "Worksheet generation started",
-                "job_id": job.id,
+                "jobs": jobs,
             },
             status=status.HTTP_202_ACCEPTED,
         )
@@ -132,7 +155,9 @@ class GenerateWorksheetEmailView(GenericAPIView):
         logger.info(f"send_worksheet_email called by user: {request.user.email}")
 
         worksheet = (
-            Worksheet.objects.filter(user=request.user)
+            Worksheet.objects.filter(
+                user=request.user, language=Worksheet.Language.SPANISH
+            )
             .order_by("-created_at")
             .only("content", "themes")
             .first()
@@ -158,39 +183,28 @@ class GenerateWorksheetEmailView(GenericAPIView):
         return Response({"content": worksheet.content})
 
 
-class LatestWorksheetView(GenericAPIView):
-    """Return the authenticated user's most recently saved worksheet (including answers)."""
+class LatestWorksheetView(RetrieveAPIView):
+    """Return the authenticated user's most recent worksheet for ?language= (default es)."""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = WorksheetSerializer
 
-    def get(self, request):
+    def get_queryset(self):
+        return Worksheet.objects.filter(user=self.request.user).select_related("user")
+
+    def get_object(self):
+        query = WorksheetLanguageQuerySerializer(data=self.request.query_params)
+        query.is_valid(raise_exception=True)
+        language = query.validated_data["language"]
+
         worksheet = (
-            Worksheet.objects.filter(user=request.user).order_by("-created_at").first()
+            self.get_queryset()
+            .filter(language=language)
+            .exclude(content__isnull=True)
+            .exclude(content="")
+            .order_by("-created_at")
+            .first()
         )
-        if not worksheet or not worksheet.content:
-            return Response(
-                {"error": "No worksheet available"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        parsed = parse_worksheet_content(worksheet.content)
-        if parsed is None:
-            logger.error(
-                "Stored worksheet %s for %s is not valid JSON",
-                worksheet.id,
-                request.user.email,
-            )
-            return Response(
-                {"error": "Worksheet content is invalid"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-        return Response(
-            {
-                "id": worksheet.id,
-                "created_at": worksheet.created_at,
-                "themes": worksheet.themes,
-                "topics": worksheet.topics,
-                "content": parsed,
-            }
-        )
+        if worksheet is None:
+            raise NotFound("No worksheet available")
+        return worksheet

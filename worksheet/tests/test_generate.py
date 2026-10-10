@@ -16,7 +16,7 @@ from worksheet.models import Worksheet
 User = get_user_model()
 
 
-TEST_GRAMMAR_POOLS = ["past tenses", "present forms", "subjunctive", "connectors"]
+TEST_GRAMMAR_POOLS = ["past tenses", "present forms", "subjunctive", "por vs para"]
 
 
 def _section(prefix: str):
@@ -43,7 +43,7 @@ _MIN_WORKSHEET = {
     "past tenses": _section("past"),
     "present forms": _section("present"),
     "subjunctive": _section("subj"),
-    "connectors": _section("conn"),
+    "por vs para": _section("pvp"),
     TRANSLATION_KEY: _translation_section(),
 }
 
@@ -65,7 +65,7 @@ def _worksheet_with_first_item(prompt: str, answer: str | list[str]):
         "past tenses": _section("past"),
         "present forms": _section("present"),
         "subjunctive": _section("subj"),
-        "connectors": _section("conn"),
+        "por vs para": _section("pvp"),
         TRANSLATION_KEY: _translation_section(),
     }
     ans = [answer] if isinstance(answer, str) else answer
@@ -135,7 +135,7 @@ class CallLLMTest(TestCase):
         # Assert
         self.assertEqual(result, '{"result": "success"}')
         mock_client.chat.completions.create.assert_called_once_with(
-            model="deepseek-chat",
+            model="deepseek-v4-flash",
             messages=payload,
             temperature=0.7,
         )
@@ -185,7 +185,7 @@ class GenerateWorksheetForTest(TestCase):
         Worksheet.objects.all().delete()
 
     @patch("worksheet.services.generate.call_llm")
-    @patch("worksheet.services.generate.get_and_increment_topics")
+    @patch("worksheet.services.generate.get_and_increment_topic_index")
     @patch("worksheet.services.generate.get_and_increment_grammar_pools")
     def test_successful_worksheet_generation(
         self, mock_get_pools, mock_get_topics, mock_call_llm
@@ -193,7 +193,7 @@ class GenerateWorksheetForTest(TestCase):
         """Test complete worksheet generation and saving"""
         # Setup mocks
         mock_get_pools.return_value = TEST_GRAMMAR_POOLS
-        mock_get_topics.return_value = ["past", "present", "future"]
+        mock_get_topics.return_value = 0
         payload = _worksheet_with_first_item("test ___ (ver)", "sol-test")
         expected = json.dumps(payload, ensure_ascii=False)
         mock_call_llm.return_value = expected
@@ -210,14 +210,14 @@ class GenerateWorksheetForTest(TestCase):
         self.assertEqual(worksheet.topics, TEST_GRAMMAR_POOLS)
 
     @patch("worksheet.services.generate.call_llm")
-    @patch("worksheet.services.generate.get_and_increment_topics")
+    @patch("worksheet.services.generate.get_and_increment_topic_index")
     @patch("worksheet.services.generate.get_and_increment_grammar_pools")
     def test_duplicate_content_returns_none(
         self, mock_get_pools, mock_get_topics, mock_call_llm
     ):
         """Test that duplicate content hash returns None"""
         mock_get_pools.return_value = TEST_GRAMMAR_POOLS
-        mock_get_topics.return_value = ["past", "present", "future"]
+        mock_get_topics.return_value = 0
         mock_call_llm.return_value = json.dumps(_MIN_WORKSHEET, ensure_ascii=False)
 
         # Generate first worksheet
@@ -232,14 +232,14 @@ class GenerateWorksheetForTest(TestCase):
         self.assertEqual(Worksheet.objects.filter(user=self.user).count(), 1)
 
     @patch("worksheet.services.generate.call_llm")
-    @patch("worksheet.services.generate.get_and_increment_topics")
+    @patch("worksheet.services.generate.get_and_increment_topic_index")
     @patch("worksheet.services.generate.get_and_increment_grammar_pools")
     def test_replaces_existing_user_worksheet(
         self, mock_get_pools, mock_get_topics, mock_call_llm
     ):
         """Test that new worksheet replaces old one for same user"""
         mock_get_pools.return_value = TEST_GRAMMAR_POOLS
-        mock_get_topics.return_value = ["past", "present", "future"]
+        mock_get_topics.return_value = 0
 
         # Create first worksheet
         first = json.dumps(
@@ -264,7 +264,7 @@ class GenerateWorksheetForTest(TestCase):
         self.assertEqual(result, second)
 
     @patch("worksheet.services.generate.call_llm")
-    @patch("worksheet.services.generate.get_and_increment_topics")
+    @patch("worksheet.services.generate.get_and_increment_topic_index")
     @patch("worksheet.services.generate.get_and_increment_grammar_pools")
     def test_different_users_can_have_same_content(
         self, mock_get_pools, mock_get_topics, mock_call_llm
@@ -275,7 +275,7 @@ class GenerateWorksheetForTest(TestCase):
         )
 
         mock_get_pools.return_value = TEST_GRAMMAR_POOLS
-        mock_get_topics.return_value = ["past", "present", "future"]
+        mock_get_topics.return_value = 0
         mock_call_llm.return_value = json.dumps(_MIN_WORKSHEET, ensure_ascii=False)
 
         # Generate for first user
@@ -287,14 +287,14 @@ class GenerateWorksheetForTest(TestCase):
         self.assertIsNone(result2)
 
     @patch("worksheet.services.generate.call_llm")
-    @patch("worksheet.services.generate.get_and_increment_topics")
+    @patch("worksheet.services.generate.get_and_increment_topic_index")
     @patch("worksheet.services.generate.get_and_increment_grammar_pools")
     def test_llm_exception_propagates(
         self, mock_get_pools, mock_get_topics, mock_call_llm
     ):
         """Test that LLM exceptions propagate correctly"""
         mock_get_pools.return_value = TEST_GRAMMAR_POOLS
-        mock_get_topics.return_value = ["past", "present", "future"]
+        mock_get_topics.return_value = 0
         mock_call_llm.side_effect = Exception("LLM API Error")
 
         with self.assertRaises(Exception) as context:
@@ -305,7 +305,7 @@ class GenerateWorksheetForTest(TestCase):
         self.assertEqual(Worksheet.objects.filter(user=self.user).count(), 0)
 
     @patch("worksheet.services.generate.call_llm")
-    @patch("worksheet.services.generate.get_and_increment_topics")
+    @patch("worksheet.services.generate.get_and_increment_topic_index")
     @patch("worksheet.services.generate.get_and_increment_grammar_pools")
     def test_content_hash_calculation(
         self, mock_get_pools, mock_get_topics, mock_call_llm
@@ -314,7 +314,7 @@ class GenerateWorksheetForTest(TestCase):
         import hashlib
 
         mock_get_pools.return_value = TEST_GRAMMAR_POOLS
-        mock_get_topics.return_value = ["past", "present", "future"]
+        mock_get_topics.return_value = 0
         test_content = json.dumps(_MIN_WORKSHEET, ensure_ascii=False)
         mock_call_llm.return_value = test_content
 
@@ -327,14 +327,14 @@ class GenerateWorksheetForTest(TestCase):
         self.assertEqual(worksheet.content_hash, expected_hash)
 
     @patch("worksheet.services.generate.call_llm")
-    @patch("worksheet.services.generate.get_and_increment_topics")
+    @patch("worksheet.services.generate.get_and_increment_topic_index")
     @patch("worksheet.services.generate.get_and_increment_grammar_pools")
     def test_rejects_legacy_string_items(
         self, mock_get_pools, mock_get_topics, mock_call_llm
     ):
         """Flat string lists (no prompt/answer) are no longer accepted."""
         mock_get_pools.return_value = TEST_GRAMMAR_POOLS
-        mock_get_topics.return_value = ["past", "present", "future"]
+        mock_get_topics.return_value = 0
         legacy = {key: [str(i) for i in range(5)] for key in TEST_GRAMMAR_POOLS}
         mock_call_llm.return_value = json.dumps(legacy)
 
@@ -344,7 +344,7 @@ class GenerateWorksheetForTest(TestCase):
         self.assertEqual(Worksheet.objects.filter(user=self.user).count(), 0)
 
     @patch("worksheet.services.generate.call_llm")
-    @patch("worksheet.services.generate.get_and_increment_topics")
+    @patch("worksheet.services.generate.get_and_increment_topic_index")
     @patch("worksheet.services.generate.get_and_increment_grammar_pools")
     def test_explicit_themes_skip_topic_rotator(
         self, mock_get_pools, mock_get_topics, mock_call_llm
@@ -360,7 +360,7 @@ class GenerateWorksheetForTest(TestCase):
         self.assertEqual(worksheet.themes, ["bugs", "deploys"])
 
     @patch("worksheet.services.generate.call_llm")
-    @patch("worksheet.services.generate.get_and_increment_topics")
+    @patch("worksheet.services.generate.get_and_increment_topic_index")
     @patch("worksheet.services.generate.get_and_increment_grammar_pools")
     def test_retries_when_blank_validation_fails_once(
         self, mock_get_pools, mock_get_topics, mock_call_llm
@@ -374,7 +374,7 @@ class GenerateWorksheetForTest(TestCase):
             json.dumps(bad, ensure_ascii=False),
             good,
         ]
-        mock_get_topics.return_value = ["past", "present", "future"]
+        mock_get_topics.return_value = 0
 
         result = generate_worksheet_for(self.user)
 
@@ -386,14 +386,14 @@ class GenerateWorksheetForTest(TestCase):
         )
 
     @patch("worksheet.services.generate.call_llm")
-    @patch("worksheet.services.generate.get_and_increment_topics")
+    @patch("worksheet.services.generate.get_and_increment_topic_index")
     @patch("worksheet.services.generate.get_and_increment_grammar_pools")
     def test_retries_when_translation_prompt_has_a_stray_blank(
         self, mock_get_pools, mock_get_topics, mock_call_llm
     ):
         """Regenerates when a translation prompt wrongly contains a ___."""
         mock_get_pools.return_value = TEST_GRAMMAR_POOLS
-        mock_get_topics.return_value = ["past", "present", "future"]
+        mock_get_topics.return_value = 0
         bad = json.loads(json.dumps(_MIN_WORKSHEET))
         bad[TRANSLATION_KEY][0]["prompt"] = "Translate this ___ sentence."
         good = json.dumps(_MIN_WORKSHEET, ensure_ascii=False)
@@ -412,14 +412,14 @@ class GenerateWorksheetForTest(TestCase):
         )
 
     @patch("worksheet.services.generate.call_llm")
-    @patch("worksheet.services.generate.get_and_increment_topics")
+    @patch("worksheet.services.generate.get_and_increment_topic_index")
     @patch("worksheet.services.generate.get_and_increment_grammar_pools")
     def test_normalizes_string_answers_from_llm(
         self, mock_get_pools, mock_get_topics, mock_call_llm
     ):
         """String \"answer\" fields from the model are coerced to one-element lists."""
         mock_get_pools.return_value = TEST_GRAMMAR_POOLS
-        mock_get_topics.return_value = ["past", "present", "future"]
+        mock_get_topics.return_value = 0
         payload = json.loads(json.dumps(_MIN_WORKSHEET))
         for section in payload.values():
             for item in section:
@@ -432,6 +432,64 @@ class GenerateWorksheetForTest(TestCase):
         self.assertEqual(result, expected)
         stored = json.loads(Worksheet.objects.get(user=self.user).content)
         self.assertEqual(stored["past tenses"][0]["answer"], ["sol-past-0"])
+
+
+class GenerateCatalanWorksheetTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="ca@example.com", password="testpass123"
+        )
+
+    @patch("worksheet.services.generate.call_llm")
+    def test_catalan_does_not_replace_spanish_worksheet(self, mock_call_llm):
+        shared_pools = [
+            "past tenses",
+            "present forms",
+            "subjunctive",
+            "irregular verbs",
+        ]
+
+        def worksheet(prefix):
+            data = {
+                pool: _section(f"{prefix}{i}") for i, pool in enumerate(shared_pools)
+            }
+            data[TRANSLATION_KEY] = _translation_section()
+            return json.dumps(data, ensure_ascii=False)
+
+        spanish, catalan = worksheet("es"), worksheet("ca")
+        mock_call_llm.side_effect = [spanish, catalan]
+
+        generate_worksheet_for(self.user, themes=["bugs"], grammar_pools=shared_pools)
+        generate_worksheet_for(
+            self.user, themes=["bugs"], grammar_pools=shared_pools, language="ca"
+        )
+
+        self.assertEqual(
+            Worksheet.objects.get(user=self.user, language="es").content, spanish
+        )
+        self.assertEqual(
+            Worksheet.objects.get(user=self.user, language="ca").content, catalan
+        )
+
+    @patch("worksheet.services.generate.call_llm")
+    def test_catalan_uses_catalan_prompt_and_rotators(self, mock_call_llm):
+        from worksheet.services.grammar_pools import CATALAN_GRAMMAR_POOLS
+        from worksheet.services.prompts import CATALAN_SYSTEM_PROMPT
+        from worksheet.services.themes import CATALAN_THEME_POOLS
+
+        pools = CATALAN_GRAMMAR_POOLS[:4]
+        data = {pool: _section(str(i)) for i, pool in enumerate(pools)}
+        data[TRANSLATION_KEY] = _translation_section()
+        mock_call_llm.return_value = json.dumps(data, ensure_ascii=False)
+
+        result = generate_worksheet_for(self.user, language="ca")
+
+        self.assertIsNotNone(result)
+        messages = mock_call_llm.call_args[0][0]
+        self.assertEqual(messages[0]["content"], CATALAN_SYSTEM_PROMPT)
+        worksheet = Worksheet.objects.get(user=self.user, language="ca")
+        self.assertEqual(worksheet.topics, pools)
+        self.assertEqual(worksheet.themes, CATALAN_THEME_POOLS[0])
 
 
 class GenerateCustomExercisesTest(TestCase):

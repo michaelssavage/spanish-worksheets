@@ -1,14 +1,15 @@
 from worksheet.models import Config
-from worksheet.services.prompts import THEME_POOLS
+from worksheet.services.languages import LanguageConfig
+from worksheet.services.themes import SPANISH_THEME_POOLS
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def get_and_increment_topics():
+def get_and_increment_topic_index() -> int:
     """
-    Returns the theme list for this generation,
-    and increments the index for next time.
+    Returns the theme pool index for this generation and increments it for
+    next time. The index is shared by all languages (theme lists are aligned).
     """
     cfg, created = Config.objects.get_or_create(
         key="topic_index", defaults={"value": "0"}
@@ -19,15 +20,17 @@ def get_and_increment_topics():
     else:
         logger.debug(f"Retrieved existing topic_index: {cfg.value}")
 
-    index = int(cfg.value)
-    themes = THEME_POOLS[index % len(THEME_POOLS)]
+    index = int(cfg.value) % len(SPANISH_THEME_POOLS)
 
-    logger.info(
-        f"Selected theme pool at index {index} (pool {index % len(THEME_POOLS)}): {themes}"
-    )
+    logger.info(f"Selected theme pool index {index} (raw {cfg.value})")
 
-    cfg.value = str(index + 1)
+    cfg.value = str(int(cfg.value) + 1)
     cfg.save()
     logger.debug(f"Incremented topic_index to {cfg.value}")
 
-    return themes
+    return index
+
+
+def themes_for(language: LanguageConfig, index: int) -> list[str]:
+    """Theme list for a language at a shared topic index."""
+    return language.theme_pools[index % len(language.theme_pools)]
