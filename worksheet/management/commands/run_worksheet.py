@@ -19,7 +19,7 @@ class Command(BaseCommand):
                 themes = themes_for(lang, topic_index)
                 content = generate_worksheet_for(u, themes=themes, language=lang.code)
                 if content and lang.sends_email:
-                    send_worksheet_email(u, content, theme=themes)
+                    send_worksheet_email(content, theme=themes)
             u.next_delivery = today + timedelta(days=2)
             u.save()
 

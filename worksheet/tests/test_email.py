@@ -1,18 +1,15 @@
 from django.test import TestCase, override_settings
-from django.contrib.auth import get_user_model
 from unittest.mock import patch, Mock
 import json
 import requests
 
 from worksheet.services.email import (
+    UNSUBSCRIBE_PLACEHOLDER,
     WORKSHEETS_URL,
     format_worksheet_html,
     normalize_to_list,
     send_worksheet_email,
 )
-from recipients.models import UserRecipient
-
-User = get_user_model()
 
 
 class NormalizeToListTest(TestCase):
@@ -185,17 +182,12 @@ class FormatWorksheetHtmlTest(TestCase):
 class SendWorksheetEmailTest(TestCase):
     """Test send_worksheet_email function"""
 
-    def setUp(self):
-        """Create test user"""
-        self.user = User.objects.create_user(
-            email="test@example.com", password="testpass123"
-        )
-
     @override_settings(
         MAILGUN_API_KEY="test-api-key",
         MAILGUN_DOMAIN="test.mailgun.org",
         MAILGUN_BASE_URL="https://api.mailgun.net",
         DEFAULT_FROM_EMAIL="noreply@test.com",
+        MAILGUN_MAILING_LIST="worksheets@test.mailgun.org",
     )
     @patch("worksheet.services.email.requests.post")
     def test_successful_email_send(self, mock_post):
@@ -214,7 +206,7 @@ class SendWorksheetEmailTest(TestCase):
         }
 
         # Execute
-        send_worksheet_email(self.user, content)
+        send_worksheet_email(content)
 
         # Assert
         mock_post.assert_called_once()
@@ -226,7 +218,7 @@ class SendWorksheetEmailTest(TestCase):
         email_data = call_args[1]["data"]
         self.assertEqual(email_data["from"], "noreply@test.com")
         self.assertEqual(email_data["subject"], "Your Spanish Worksheet")
-        self.assertEqual(email_data["to"], [self.user.email])
+        self.assertEqual(email_data["to"], "worksheets@test.mailgun.org")
         self.assertIn("text", email_data)
         self.assertIn("html", email_data)
 
@@ -235,41 +227,41 @@ class SendWorksheetEmailTest(TestCase):
         MAILGUN_DOMAIN="test.mailgun.org",
         MAILGUN_BASE_URL="https://api.mailgun.net",
         DEFAULT_FROM_EMAIL="noreply@test.com",
+        MAILGUN_MAILING_LIST="worksheets@test.mailgun.org",
     )
     @patch("worksheet.services.email.requests.post")
-    def test_email_with_additional_recipients(self, mock_post):
-        """Test email sending includes additional recipients"""
-        # Add additional recipients
-        UserRecipient.objects.create(user=self.user, email="recipient1@example.com")
-        UserRecipient.objects.create(user=self.user, email="recipient2@example.com")
-
+    def test_email_includes_unsubscribe_link(self, mock_post):
+        """Test both bodies carry Mailgun's mailing list unsubscribe placeholder"""
         mock_response = Mock()
         mock_response.ok = True
         mock_post.return_value = mock_response
 
-        content = {
-            "past": ["Test"],
-            "present": ["Test"],
-            "future": ["Test"],
-            "subjunctive": ["Test"],
-        }
-        send_worksheet_email(self.user, content)
+        send_worksheet_email({"past": ["Test"]})
 
-        # Check that all recipients are included
-        call_args = mock_post.call_args
-        email_data = call_args[1]["data"]
-        recipients = email_data["to"]
+        email_data = mock_post.call_args[1]["data"]
+        self.assertIn(UNSUBSCRIBE_PLACEHOLDER, email_data["html"])
+        self.assertIn(UNSUBSCRIBE_PLACEHOLDER, email_data["text"])
 
-        self.assertIn(self.user.email, recipients)
-        self.assertIn("recipient1@example.com", recipients)
-        self.assertIn("recipient2@example.com", recipients)
-        self.assertEqual(len(recipients), 3)
+    @override_settings(
+        MAILGUN_API_KEY="test-api-key",
+        MAILGUN_DOMAIN="test.mailgun.org",
+        MAILGUN_BASE_URL="https://api.mailgun.net",
+        DEFAULT_FROM_EMAIL="noreply@test.com",
+        MAILGUN_MAILING_LIST="",
+    )
+    def test_missing_mailing_list(self):
+        """Test that missing mailing list raises ValueError"""
+        with self.assertRaises(ValueError) as context:
+            send_worksheet_email({"past": ["Test"]})
+
+        self.assertIn("MAILGUN_MAILING_LIST", str(context.exception))
 
     @override_settings(
         MAILGUN_API_KEY="",
         MAILGUN_DOMAIN="test.mailgun.org",
         MAILGUN_BASE_URL="https://api.mailgun.net",
         DEFAULT_FROM_EMAIL="noreply@test.com",
+        MAILGUN_MAILING_LIST="worksheets@test.mailgun.org",
     )
     def test_missing_mailgun_api_key(self):
         """Test that missing API key raises ValueError"""
@@ -281,7 +273,7 @@ class SendWorksheetEmailTest(TestCase):
         }
 
         with self.assertRaises(ValueError) as context:
-            send_worksheet_email(self.user, content)
+            send_worksheet_email(content)
 
         self.assertIn("MAILGUN_API_KEY", str(context.exception))
 
@@ -290,6 +282,7 @@ class SendWorksheetEmailTest(TestCase):
         MAILGUN_DOMAIN="",
         MAILGUN_BASE_URL="https://api.mailgun.net",
         DEFAULT_FROM_EMAIL="noreply@test.com",
+        MAILGUN_MAILING_LIST="worksheets@test.mailgun.org",
     )
     def test_missing_mailgun_domain(self):
         """Test that missing domain raises ValueError"""
@@ -301,7 +294,7 @@ class SendWorksheetEmailTest(TestCase):
         }
 
         with self.assertRaises(ValueError) as context:
-            send_worksheet_email(self.user, content)
+            send_worksheet_email(content)
 
         self.assertIn("MAILGUN_DOMAIN", str(context.exception))
 
@@ -310,6 +303,7 @@ class SendWorksheetEmailTest(TestCase):
         MAILGUN_DOMAIN="test.mailgun.org",
         MAILGUN_BASE_URL="https://api.mailgun.net",
         DEFAULT_FROM_EMAIL="noreply@test.com",
+        MAILGUN_MAILING_LIST="worksheets@test.mailgun.org",
     )
     @patch("worksheet.services.email.requests.post")
     def test_mailgun_api_failure(self, mock_post):
@@ -332,7 +326,7 @@ class SendWorksheetEmailTest(TestCase):
         }
 
         with self.assertRaises(requests.exceptions.HTTPError):
-            send_worksheet_email(self.user, content)
+            send_worksheet_email(content)
 
         # Should call raise_for_status
         mock_response.raise_for_status.assert_called_once()
@@ -342,6 +336,7 @@ class SendWorksheetEmailTest(TestCase):
         MAILGUN_DOMAIN="test.mailgun.org",
         MAILGUN_BASE_URL="https://api.mailgun.net",
         DEFAULT_FROM_EMAIL="noreply@test.com",
+        MAILGUN_MAILING_LIST="worksheets@test.mailgun.org",
     )
     @patch("worksheet.services.email.requests.post")
     def test_network_error_handling(self, mock_post):
@@ -356,13 +351,14 @@ class SendWorksheetEmailTest(TestCase):
         }
 
         with self.assertRaises(requests.exceptions.Timeout):
-            send_worksheet_email(self.user, content)
+            send_worksheet_email(content)
 
     @override_settings(
         MAILGUN_API_KEY="test-api-key",
         MAILGUN_DOMAIN="test.mailgun.org",
         MAILGUN_BASE_URL="https://api.mailgun.net",
         DEFAULT_FROM_EMAIL="noreply@test.com",
+        MAILGUN_MAILING_LIST="worksheets@test.mailgun.org",
     )
     @patch("worksheet.services.email.requests.post")
     def test_plain_text_generation(self, mock_post):
@@ -377,7 +373,7 @@ class SendWorksheetEmailTest(TestCase):
             "subjunctive": ["palabra", "frase"],
             "connectors": ["sin embargo"],
         }
-        send_worksheet_email(self.user, content)
+        send_worksheet_email(content)
 
         call_args = mock_post.call_args
         plain_text = call_args[1]["data"]["text"]
@@ -397,6 +393,7 @@ class SendWorksheetEmailTest(TestCase):
         MAILGUN_DOMAIN="test.mailgun.org",
         MAILGUN_BASE_URL="https://api.mailgun.net",
         DEFAULT_FROM_EMAIL="noreply@test.com",
+        MAILGUN_MAILING_LIST="worksheets@test.mailgun.org",
     )
     @patch("worksheet.services.email.requests.post")
     def test_json_string_content(self, mock_post):
@@ -413,7 +410,7 @@ class SendWorksheetEmailTest(TestCase):
                 "subjunctive": ["Test vocab"],
             }
         )
-        send_worksheet_email(self.user, content)
+        send_worksheet_email(content)
 
         # Should process successfully
         mock_post.assert_called_once()
@@ -426,6 +423,7 @@ class SendWorksheetEmailTest(TestCase):
         MAILGUN_DOMAIN="test.mailgun.org",
         MAILGUN_BASE_URL="https://api.mailgun.net/",
         DEFAULT_FROM_EMAIL="noreply@test.com",
+        MAILGUN_MAILING_LIST="worksheets@test.mailgun.org",
     )
     @patch("worksheet.services.email.requests.post")
     def test_url_construction_with_trailing_slash(self, mock_post):
@@ -440,7 +438,7 @@ class SendWorksheetEmailTest(TestCase):
             "future": ["Test"],
             "subjunctive": ["Test"],
         }
-        send_worksheet_email(self.user, content)
+        send_worksheet_email(content)
 
         call_args = mock_post.call_args
         url = call_args[0][0]
@@ -454,6 +452,7 @@ class SendWorksheetEmailTest(TestCase):
         MAILGUN_DOMAIN="test.mailgun.org",
         MAILGUN_BASE_URL="https://api.mailgun.net",
         DEFAULT_FROM_EMAIL="noreply@test.com",
+        MAILGUN_MAILING_LIST="worksheets@test.mailgun.org",
     )
     @patch("worksheet.services.email.requests.post")
     def test_invalid_content_fallback(self, mock_post):
@@ -464,7 +463,7 @@ class SendWorksheetEmailTest(TestCase):
 
         # Invalid content that will fail JSON parsing
         content = "Not valid JSON at all"
-        send_worksheet_email(self.user, content)
+        send_worksheet_email(content)
 
         # Should still send email with fallback content
         mock_post.assert_called_once()
@@ -473,5 +472,6 @@ class SendWorksheetEmailTest(TestCase):
         self.assertEqual(
             email_data["text"],
             f"Your Spanish Worksheet\n\nDo the worksheets online: "
-            f"{WORKSHEETS_URL}\n\nNot valid JSON at all",
+            f"{WORKSHEETS_URL}\n\nNot valid JSON at all"
+            f"\n\nUnsubscribe: {UNSUBSCRIBE_PLACEHOLDER}\n",
         )

@@ -41,7 +41,7 @@ def generate_worksheet_job(user_id, language="es", themes=None):
                     .first()
                 )
                 themes = worksheet.themes if worksheet and worksheet.themes else None
-                send_worksheet_email(user, content, theme=themes)
+                send_worksheet_email(content, theme=themes)
             except Exception as e:
                 logger.error("Email failed: %s", e)
 

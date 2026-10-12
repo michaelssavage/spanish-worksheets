@@ -10,6 +10,8 @@ from worksheet.services.exercise_items import exercise_prompt_for_display
 logger = logging.getLogger(__name__)
 
 WORKSHEETS_URL = "https://michaelsavage.ie/worksheets"
+# Mailgun replaces this per member when sending to a mailing list.
+UNSUBSCRIBE_PLACEHOLDER = "%mailing_list_unsubscribe_url%"
 
 
 def _worksheet_link_html() -> str:
@@ -52,6 +54,18 @@ def normalize_to_list(value):
         return [value]
     else:
         return []
+
+
+def _unsubscribe_html() -> str:
+    return (
+        '<p style="margin-top: 40px; font-size: 12px; color: #888;">'
+        f'<a href="{UNSUBSCRIBE_PLACEHOLDER}" style="color: #888;">Unsubscribe</a>'
+        "</p>"
+    )
+
+
+def _unsubscribe_plain() -> str:
+    return f"\n\nUnsubscribe: {UNSUBSCRIBE_PLACEHOLDER}\n"
 
 
 def format_worksheet_html(content_json, theme=None):
@@ -108,7 +122,8 @@ def format_worksheet_html(content_json, theme=None):
             html_content += """            </div>
         """
 
-        html_content += """        </body>
+        html_content += f"""        {_unsubscribe_html()}
+        </body>
         </html>
         """
 
@@ -119,33 +134,14 @@ def format_worksheet_html(content_json, theme=None):
         return f"<html><body><pre>{content_json}</pre></body></html>"
 
 
-def send_worksheet_email(user, content, theme=None):
-    """Send worksheet email to user and their additional recipients."""
-    logger.info(f"Sending worksheet email to {user.email}")
-
-    # Always include the user, then any additional recipients (deduped)
-    additional_recipients = list(user.email_recipients.values_list("email", flat=True))
-    all_recipients = [user.email] + additional_recipients
-    # Remove empties and duplicates while preserving order
-    seen = set()
-    all_recipients = [
-        email
-        for email in all_recipients
-        if email and not (email in seen or seen.add(email))
-    ]
-    logger.info(
-        "Email recipients resolved for %s: %s total",
-        user.email,
-        len(all_recipients),
-    )
+def send_worksheet_email(content, theme=None):
+    """Send worksheet email to the Mailgun mailing list."""
+    mailing_list = settings.MAILGUN_MAILING_LIST
+    logger.info("Sending worksheet email to mailing list %s", mailing_list)
 
     subject = "Your Spanish Worksheet"
     html_message = format_worksheet_html(content, theme=theme)
-    logger.debug(
-        "Email content prepared for %s (html length=%s)",
-        user.email,
-        len(html_message),
-    )
+    logger.debug("Email content prepared (html length=%s)", len(html_message))
 
     try:
         if isinstance(content, str):
@@ -165,13 +161,14 @@ def send_worksheet_email(user, content, theme=None):
         plain_text += "\n\n".join(section_blocks) + "\n"
     except (json.JSONDecodeError, KeyError, AttributeError):
         plain_text = f"Your Spanish Worksheet\n\n{_worksheet_link_plain()}{content}"
+    plain_text += _unsubscribe_plain()
 
     if not settings.MAILGUN_API_KEY or not settings.MAILGUN_DOMAIN:
         raise ValueError(
             "Mailgun settings MAILGUN_API_KEY and MAILGUN_DOMAIN are required."
         )
-    if not all_recipients:
-        raise ValueError("No recipients found for worksheet email.")
+    if not mailing_list:
+        raise ValueError("Mailgun setting MAILGUN_MAILING_LIST is required.")
 
     url = (
         f"{settings.MAILGUN_BASE_URL.rstrip('/')}/v3/{settings.MAILGUN_DOMAIN}/messages"
@@ -179,7 +176,7 @@ def send_worksheet_email(user, content, theme=None):
     logger.info("Sending email via Mailgun domain: %s", settings.MAILGUN_DOMAIN)
     data = {
         "from": settings.DEFAULT_FROM_EMAIL,
-        "to": all_recipients,
+        "to": mailing_list,
         "subject": subject,
         "text": plain_text,
         "html": html_message,
@@ -194,10 +191,7 @@ def send_worksheet_email(user, content, theme=None):
         )
 
         if response.ok:
-            logger.info(
-                "Email sent successfully to %s recipients via Mailgun",
-                len(all_recipients),
-            )
+            logger.info("Email sent successfully to %s via Mailgun", mailing_list)
             return
 
         logger.error(

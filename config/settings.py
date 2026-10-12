@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     # app
     "users",
     "worksheet",
-    "recipients",
 ]
 
 RQ_QUEUES = {
@@ -160,6 +159,7 @@ DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@michaelsavage
 MAILGUN_API_KEY = config("MAILGUN_API_KEY", default=None)
 MAILGUN_DOMAIN = config("MAILGUN_DOMAIN", default=None)
 MAILGUN_BASE_URL = config("MAILGUN_BASE_URL", default="https://api.eu.mailgun.net")
+MAILGUN_MAILING_LIST = config("MAILGUN_MAILING_LIST", default=None)
 
 # Logging configuration
 LOGGING = {

@@ -73,7 +73,7 @@ class UserAdmin(BaseUserAdmin):
                     themes = (
                         worksheet.themes if worksheet and worksheet.themes else None
                     )
-                    send_worksheet_email(user, content, theme=themes)
+                    send_worksheet_email(content, theme=themes)
                     # Update next_delivery date
                     today = timezone.now().date()
                     user.next_delivery = today + timedelta(days=2)
