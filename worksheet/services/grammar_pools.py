@@ -10,9 +10,9 @@ for each pool. Spanish and Catalan each have their own pools.
 SPANISH_GRAMMAR_POOLS = [
     "past tenses",
     "present forms",
-    "future tenses",
     "subjunctive",
     "por vs para",
+    "lo que vs el que vs lo cual",
     "irregular verbs",
 ]
 
@@ -27,11 +27,6 @@ SPANISH_GRAMMAR_POOL_GUIDANCE = {
         "perfecto, presente progresivo. Answer is the conjugated verb form "
         "(or auxiliary + participle) only."
     ),
-    "future tenses": (
-        "Distribute across the 5 items: futuro simple, futuro perfecto. "
-        "Answer is the conjugated verb form (or auxiliary + participle) "
-        "only."
-    ),
     "subjunctive": (
         "Distribute across the 5 items: presente de subjuntivo, imperfecto "
         "de subjuntivo (-ra/-se), pretérito pluscuamperfecto de subjuntivo, "
@@ -42,6 +37,15 @@ SPANISH_GRAMMAR_POOL_GUIDANCE = {
         "Each blank is exactly 'por' or 'para', whichever fits the context "
         "(cause, purpose, exchange, duration, destination, deadline, etc.). "
         "Answer is 'por' or 'para' only — not a full phrase."
+    ),
+    "lo que vs el que vs lo cual": (
+        "Each blank is a relative pronoun: 'lo que', 'el que' (or 'la que', "
+        "'los que', 'las que'), or 'lo cual', whichever fits the context. "
+        "Mix all three across the 5 items, including at least one 'lo cual' "
+        "referring back to a whole preceding clause (after a comma) and at "
+        "least one 'el/la/los/las que' after a preposition with a specific "
+        "antecedent. If both 'lo que' and 'lo cual' are grammatical, list "
+        "both. Answer is the relative pronoun only."
     ),
     "irregular verbs": (
         "Each blank is the correctly conjugated form of a common irregular "
@@ -55,7 +59,6 @@ CATALAN_GRAMMAR_POOLS = [
     "present forms",
     "future and conditional",
     "subjunctive",
-    "pronoms febles",
     "per vs per a",
     "irregular verbs",
 ]
@@ -83,12 +86,6 @@ CATALAN_GRAMMAR_POOL_GUIDANCE = {
         "subjuntiu, perfet de subjuntiu, plusquamperfet de subjuntiu. "
         "Prefer triggers that naturally call for the subjunctive. Answer is "
         "the conjugated verb form only."
-    ),
-    "pronoms febles": (
-        "Each blank is a weak pronoun or pronoun combination (e.g. en, hi, "
-        "el, la, els, li, ho, l'hi, n'hi, me'n, se'l) in its correct form "
-        "and position for the context. No parenthetical hint. Answer is the "
-        "pronoun(s) only, with apostrophes/hyphens exactly as written."
     ),
     "per vs per a": (
         "Each blank is exactly 'per' or 'per a', whichever fits the context "

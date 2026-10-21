@@ -21,7 +21,7 @@ from worksheet.services.prompts import (
 from worksheet.services.themes import CATALAN_THEME_POOLS, SPANISH_THEME_POOLS
 
 TEST_POOLS = ["past tenses", "present forms", "subjunctive", "por vs para"]
-CATALAN_TEST_POOLS = ["past tenses", "pronoms febles", "subjunctive", "per vs per a"]
+CATALAN_TEST_POOLS = ["past tenses", "present forms", "subjunctive", "per vs per a"]
 
 
 class BuildUserPromptTest(SimpleTestCase):
@@ -56,7 +56,7 @@ class BuildUserPromptTest(SimpleTestCase):
     def test_catalan_prompt_uses_catalan_guidance_and_language(self):
         prompt = build_user_prompt(CATALAN, ["bugs"], CATALAN_TEST_POOLS)
 
-        self.assertIn(CATALAN_GRAMMAR_POOL_GUIDANCE["pronoms febles"], prompt)
+        self.assertIn(CATALAN_GRAMMAR_POOL_GUIDANCE["per vs per a"], prompt)
         self.assertIn("Catalan only in prompts and answers", prompt)
         self.assertIn("Va arribar", prompt)
         self.assertNotIn("Spanish", prompt)
