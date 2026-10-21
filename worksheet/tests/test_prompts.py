@@ -11,6 +11,7 @@ from worksheet.services.grammar_pools import (
 from worksheet.services.languages import CATALAN, SPANISH
 from worksheet.services.prompts import (
     CATALAN_SYSTEM_PROMPT,
+    SPANISH_AVOID_VERBS,
     SPANISH_SYSTEM_PROMPT,
     TRANSLATION_ITEMS,
     TRANSLATION_KEY,
@@ -81,6 +82,11 @@ class BuildPayloadTest(SimpleTestCase):
         )
         self.assertIn("hubiere cantado", SPANISH_SYSTEM_PROMPT)
         self.assertIn("future perfect indicative", SPANISH_SYSTEM_PROMPT)
+
+    def test_spanish_system_prompt_bans_a1_verbs(self):
+        for verb in SPANISH_AVOID_VERBS:
+            self.assertIn(verb, SPANISH_SYSTEM_PROMPT)
+        self.assertNotIn("Focus verbs", SPANISH_SYSTEM_PROMPT)
 
     def test_catalan_system_prompt_bans_castilianisms_and_anar_a_future(self):
         self.assertIn("Castilianisms", CATALAN_SYSTEM_PROMPT)

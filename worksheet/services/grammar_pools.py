@@ -48,8 +48,9 @@ SPANISH_GRAMMAR_POOL_GUIDANCE = {
         "both. Answer is the relative pronoun only."
     ),
     "irregular verbs": (
-        "Each blank is the correctly conjugated form of a common irregular "
-        "verb, in whichever tense/mood fits the context. Answer is the "
+        "Each blank is the correctly conjugated form of a less common irregular "
+        "or stem-changing verb (not A1 basics like tener or saber), in "
+        "whichever tense/mood fits the context. Answer is the "
         "conjugated verb form only."
     ),
 }

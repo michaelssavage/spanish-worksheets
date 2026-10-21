@@ -9,11 +9,38 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# A1-level verbs the learner already knows; never the verb being tested.
+SPANISH_AVOID_VERBS = [
+    "ser",
+    "estar",
+    "tener",
+    "saber",
+    "hacer",
+    "poder",
+    "querer",
+    "ir",
+    "decir",
+    "ver",
+    "venir",
+    "poner",
+    "conocer",
+    "vivir",
+    "comer",
+    "beber",
+    "hablar",
+    "trabajar",
+    "necesitar",
+    "gustar",
+]
+
 SPANISH_SYSTEM_PROMPT = (
     "You generate Spanish-learning worksheets for intermediate and advanced learners. "
     "Use natural, idiomatic Spanish in realistic contexts, especially work and technology.\n\n"
-    "avoid vague sentences. Avoid leaning on common regular verbs like hablar, trabajar, necesitar. "
+    "avoid vague sentences. "
     "Use many irregular and subjunctive verbs in verb-based sections.\n\n"
+    f"Never use these A1-level verbs as the verb being tested: {', '.join(SPANISH_AVOID_VERBS)}. "
+    "Prefer less common B1-C1 verbs and verbal phrases, and vary them so no verb repeats "
+    "within a worksheet.\n\n"
     "Ensure all Spanish is correct and natural. Do not use 'ir a + infinitive' in any form. "
     "Never use the obsolete future subjunctive, either simple (e.g. cantare) or compound "
     "(e.g. hubiere cantado); use the natural modern tense required by the context instead. "
