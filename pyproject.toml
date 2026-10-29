@@ -29,7 +29,12 @@ package-mode = false
 [tool.poetry.group.dev.dependencies]
 flake8 = "^7.3.0"
 black = "^25.11.0"
+ruff = "^0.17.3"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+target-version = "py313"
+extend-exclude = ["**/migrations"]

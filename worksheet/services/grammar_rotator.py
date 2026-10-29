@@ -1,6 +1,7 @@
+import logging
+
 from worksheet.models import Config
 from worksheet.services.languages import SPANISH, LanguageConfig
-import logging
 
 logger = logging.getLogger(__name__)
 

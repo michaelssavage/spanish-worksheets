@@ -1,19 +1,12 @@
-from worksheet.models import Worksheet
-from worksheet.services.prompts import (
-    TRANSLATION_KEY,
-    build_custom_payload,
-    build_payload,
-)
-from django.conf import settings
 import hashlib
-from openai import OpenAI
-import logging
 import json
+import logging
 import re
 
-from worksheet.services.languages import get_language
-from worksheet.services.topic_rotator import get_and_increment_topic_index, themes_for
-from worksheet.services.grammar_rotator import get_and_increment_grammar_pools
+from django.conf import settings
+from openai import OpenAI
+
+from worksheet.models import Worksheet
 from worksheet.services.exercise_items import (
     normalize_custom_exercise_answers,
     normalize_worksheet_answers,
@@ -23,6 +16,14 @@ from worksheet.services.exercise_items import (
     validate_worksheet_blank_prompts,
     validate_worksheet_exercises,
 )
+from worksheet.services.grammar_rotator import get_and_increment_grammar_pools
+from worksheet.services.languages import get_language
+from worksheet.services.prompts import (
+    TRANSLATION_KEY,
+    build_custom_payload,
+    build_payload,
+)
+from worksheet.services.topic_rotator import get_and_increment_topic_index, themes_for
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +96,7 @@ def call_llm(messages: list[dict]) -> str:
     )
 
     response = client.chat.completions.create(
-        model="deepseek-v4-flash",
+        model="deepseek-flash",
         messages=messages,
         temperature=0.7,
     )

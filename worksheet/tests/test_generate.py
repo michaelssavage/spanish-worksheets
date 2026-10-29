@@ -135,7 +135,7 @@ class CallLLMTest(TestCase):
         # Assert
         self.assertEqual(result, '{"result": "success"}')
         mock_client.chat.completions.create.assert_called_once_with(
-            model="deepseek-v4-flash",
+            model="deepseek-flash",
             messages=payload,
             temperature=0.7,
         )

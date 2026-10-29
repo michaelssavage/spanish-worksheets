@@ -7,6 +7,8 @@ from pathlib import Path
 from decouple import config
 import dj_database_url
 
+from config.logging import build_logging_config
+
 DEEPSEEK_API_KEY = config("DEEPSEEK_API_KEY")
 REDIS_URL = config("REDIS_URL")
 
@@ -99,7 +101,8 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASES = {
     "default": dj_database_url.config(
-        default="sqlite:///db.sqlite3", conn_max_age=600  # fallback for local dev
+        default="sqlite:///db.sqlite3",  # fallback for local dev
+        conn_max_age=600,
     )
 }
 
@@ -162,34 +165,4 @@ MAILGUN_BASE_URL = config("MAILGUN_BASE_URL", default="https://api.eu.mailgun.ne
 MAILGUN_MAILING_LIST = config("MAILGUN_MAILING_LIST", default=None)
 
 # Logging configuration
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "verbose": {
-            "format": "{levelname} {asctime} {module} {message}",
-            "style": "{",
-        },
-        "simple": {
-            "format": "{levelname} {message}",
-            "style": "{",
-        },
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "verbose",
-        },
-    },
-    "root": {
-        "handlers": ["console"],
-        "level": "INFO",
-    },
-    "loggers": {
-        "worksheet": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
-        },
-    },
-}
+LOGGING = build_logging_config(json_logs=not DEBUG)
